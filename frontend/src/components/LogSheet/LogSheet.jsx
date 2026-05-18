@@ -18,6 +18,7 @@ const ROW_FULL_LABELS = {
   driving: "Driving",
   on_duty: "On-duty",
 };
+const DEFAULT_HOME_TERMINAL_TIMEZONE = "America/Chicago";
 
 // SVG geometry — designed at this viewBox; scales to container width.
 const VIEW_W = 960;
@@ -31,11 +32,22 @@ const VIEW_H = PAD_T + ROW_H * 4 + 24;
 const minuteToX = (m) => PAD_L + (m / 1440) * GRID_W;
 const rowToY = (rowIdx) => PAD_T + rowIdx * ROW_H + ROW_H / 2;
 
-export default function LogSheet({ log, dayNumber }) {
-  const segments = log?.segments ?? [];
+export default function LogSheet({ log, dayNumber, homeTerminalTimezone }) {
+  const segments = useMemo(() => log?.segments ?? [], [log?.segments]);
   const totalsMinutes = log?.totals ?? {};
+  const timeZone =
+    homeTerminalTimezone ??
+    log?.home_terminal_timezone ??
+    DEFAULT_HOME_TERMINAL_TIMEZONE;
   const stepPath = useMemo(() => buildStepPath(segments), [segments]);
   const changeDots = useMemo(() => buildChangeDots(segments), [segments]);
+  const segmentStartMinutes = useMemo(() => {
+    const minutes = new Map();
+    for (const segment of segments) {
+      minutes.set(segment.start, segment.start_minute_of_day);
+    }
+    return minutes;
+  }, [segments]);
   if (!log) return null;
 
   return (
@@ -84,7 +96,13 @@ export default function LogSheet({ log, dayNumber }) {
         <ul className={styles.remarkList}>
           {(log.remarks ?? []).map((remark, i) => (
             <li key={i} className={styles.remarkItem}>
-              <span className={styles.remarkTime}>{formatRemarkTime(remark.time)}</span>
+              <span className={styles.remarkTime}>
+                {formatRemarkTime(
+                  remark.time,
+                  timeZone,
+                  segmentStartMinutes.get(remark.time),
+                )}
+              </span>
               <span>{remark.location}</span>
             </li>
           ))}
@@ -256,14 +274,25 @@ function formatDate(iso) {
   }
 }
 
-function formatRemarkTime(iso) {
+function formatMinuteOfDay(minuteOfDay) {
+  const normalized = ((minuteOfDay % 1440) + 1440) % 1440;
+  const h = Math.floor(normalized / 60);
+  const m = normalized % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function formatRemarkTime(iso, timeZone, minuteOfDay) {
+  if (Number.isFinite(minuteOfDay)) {
+    return formatMinuteOfDay(minuteOfDay);
+  }
   try {
     const d = new Date(iso);
-    return d.toLocaleTimeString(undefined, {
+    return new Intl.DateTimeFormat(undefined, {
+      timeZone,
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false,
-    });
+      hourCycle: "h23",
+    }).format(d);
   } catch {
     return iso;
   }

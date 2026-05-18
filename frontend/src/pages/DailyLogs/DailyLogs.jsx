@@ -54,7 +54,13 @@ export default function DailyLogs() {
     for (const trip of trips) {
       for (const log of trip.daily_logs ?? []) {
         // Last-write-wins is fine — logs per date should be unique per driver.
-        m.set(log.date, log);
+        m.set(log.date, {
+          ...log,
+          home_terminal_timezone:
+            log.home_terminal_timezone ??
+            trip.home_terminal_timezone ??
+            trip.inputs?.home_terminal_timezone,
+        });
       }
     }
     return m;

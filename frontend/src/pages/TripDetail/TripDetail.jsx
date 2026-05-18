@@ -73,6 +73,8 @@ export default function TripDetail() {
   const inputs = trip?.inputs ?? {};
   const summary = trip?.summary ?? {};
   const dailyLogs = trip?.daily_logs ?? [];
+  const homeTerminalTimezone =
+    trip?.home_terminal_timezone ?? inputs.home_terminal_timezone;
 
   const tabs = useMemo(
     () => [
@@ -165,7 +167,7 @@ export default function TripDetail() {
       <PageHeader
         eyebrow={`Trip · ${trip.id}`}
         title={`${inputs.current_location} → ${inputs.pickup_location} → ${inputs.dropoff_location}`}
-        description={`Planned ${formatLong(inputs.start_datetime)}`}
+        description={`Planned ${formatLong(inputs.start_datetime, homeTerminalTimezone)}`}
         actions={
           <>
             <Button
@@ -239,7 +241,7 @@ export default function TripDetail() {
                 <div>
                   <span className={styles.label}>Starts</span>
                   <span className={styles.bigDate}>
-                    {formatLongWithTime(inputs.start_datetime)}
+                    {formatLongWithTime(inputs.start_datetime, homeTerminalTimezone)}
                   </span>
                 </div>
                 <div>
@@ -275,7 +277,12 @@ export default function TripDetail() {
         {tab === "logs" ? (
           <div className={styles.logsStack}>
             {dailyLogs.map((log, idx) => (
-              <LogSheet key={log.date} log={log} dayNumber={idx + 1} />
+              <LogSheet
+                key={log.date}
+                log={log}
+                dayNumber={idx + 1}
+                homeTerminalTimezone={homeTerminalTimezone}
+              />
             ))}
           </div>
         ) : null}
@@ -300,8 +307,12 @@ export default function TripDetail() {
                         {STOP_LABELS[s.kind] ?? s.kind}
                       </Badge>
                     </td>
-                    <td className="mono tabular">{formatTime(s.start)}</td>
-                    <td className="mono tabular">{formatTime(s.end)}</td>
+                    <td className="mono tabular">
+                      {formatTime(s.start, homeTerminalTimezone)}
+                    </td>
+                    <td className="mono tabular">
+                      {formatTime(s.end, homeTerminalTimezone)}
+                    </td>
                     <td>{s.label}</td>
                     <td className={styles.note}>{s.note || "—"}</td>
                   </tr>
@@ -315,10 +326,11 @@ export default function TripDetail() {
   );
 }
 
-function formatLong(iso) {
+function formatLong(iso, timeZone) {
   if (!iso) return "";
   try {
     return new Date(iso).toLocaleDateString(undefined, {
+      timeZone,
       month: "long",
       day: "numeric",
       year: "numeric",
@@ -328,10 +340,11 @@ function formatLong(iso) {
   }
 }
 
-function formatLongWithTime(iso) {
+function formatLongWithTime(iso, timeZone) {
   if (!iso) return "—";
   try {
     return new Date(iso).toLocaleString(undefined, {
+      timeZone,
       weekday: "short",
       month: "short",
       day: "numeric",
@@ -343,10 +356,11 @@ function formatLongWithTime(iso) {
   }
 }
 
-function formatTime(iso) {
+function formatTime(iso, timeZone) {
   if (!iso) return "—";
   try {
     return new Date(iso).toLocaleString(undefined, {
+      timeZone,
       month: "short",
       day: "numeric",
       hour: "2-digit",

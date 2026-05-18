@@ -27,14 +27,17 @@ def build_trip_response(
     daily_logs: list[DailyLog],
     start_datetime: datetime,
 ) -> dict[str, Any]:
+    home_terminal_timezone = _timezone_name(start_datetime)
     return {
         "id": trip_id,
+        "home_terminal_timezone": home_terminal_timezone,
         "inputs": {
             "current_location": inputs["current_location"],
             "pickup_location": inputs["pickup_location"],
             "dropoff_location": inputs["dropoff_location"],
             "current_cycle_hours": float(inputs["current_cycle_hours"]),
             "start_datetime": start_datetime.isoformat(),
+            "home_terminal_timezone": home_terminal_timezone,
         },
         "summary": {
             "total_miles": round(timeline.total_miles, 1),
@@ -60,7 +63,9 @@ def build_trip_response(
             ],
         },
         "stops": _serialize_stops(timeline),
-        "daily_logs": [_serialize_daily_log(log) for log in daily_logs],
+        "daily_logs": [
+            _serialize_daily_log(log, home_terminal_timezone) for log in daily_logs
+        ],
     }
 
 
@@ -107,9 +112,10 @@ def _serialize_stops(timeline: Timeline) -> list[dict[str, Any]]:
     return stops
 
 
-def _serialize_daily_log(log: DailyLog) -> dict[str, Any]:
+def _serialize_daily_log(log: DailyLog, home_terminal_timezone: str) -> dict[str, Any]:
     return {
         "date": log.log_date.isoformat(),
+        "home_terminal_timezone": home_terminal_timezone,
         "segments": [_serialize_log_segment(seg) for seg in log.segments],
         "totals": {
             "off_duty_minutes": log.total_off_duty_minutes,
@@ -141,6 +147,14 @@ def _serialize_log_segment(seg: LogSegment) -> dict[str, Any]:
 
 def _minute_of_day(moment: datetime) -> int:
     return moment.hour * 60 + moment.minute
+
+
+def _timezone_name(moment: datetime) -> str:
+    return (
+        getattr(moment.tzinfo, "key", None)
+        or moment.tzname()
+        or "America/Chicago"
+    )
 
 
 def _minute_of_day_inclusive_end(start: datetime, end: datetime) -> int:
