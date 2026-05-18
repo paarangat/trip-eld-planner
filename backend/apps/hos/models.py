@@ -1,6 +1,6 @@
 """Domain dataclasses for the HOS engine.
 
-Pure Python. No Django, no I/O. Implementations land in subsequent commits.
+Pure Python. No Django, no I/O.
 """
 
 from __future__ import annotations
@@ -17,6 +17,18 @@ class DutyStatus(str, Enum):
     ON_DUTY_NOT_DRIVING = "on_duty"
 
 
+class StopKind(str, Enum):
+    """Why a non-driving segment exists. Used by the API for map markers."""
+
+    START = "start"
+    PICKUP = "pickup"
+    DROPOFF = "dropoff"
+    FUEL = "fuel"
+    BREAK = "break"
+    REST = "rest"
+    RESTART = "restart"
+
+
 @dataclass(frozen=True)
 class Location:
     label: str
@@ -31,8 +43,16 @@ class DutySegment:
     end: datetime
     location: Location
     note: str = ""
+    miles: float = 0.0
+    stop_kind: StopKind | None = None
+
+    @property
+    def duration_minutes(self) -> int:
+        delta = self.end - self.start
+        return int(delta.total_seconds() // 60)
 
 
 @dataclass
 class Timeline:
     segments: list[DutySegment] = field(default_factory=list)
+    total_miles: float = 0.0
