@@ -38,9 +38,7 @@ export function useTripPlan() {
       setError(err);
       throw err;
     } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
+      setLoading(false);
       if (controllerRef.current === controller) {
         controllerRef.current = null;
       }
