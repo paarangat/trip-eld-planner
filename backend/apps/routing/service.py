@@ -2,7 +2,8 @@
 
 Turns three location strings into two driving legs with geometry, distance,
 duration, and cumulative-distance markers along each path. Geocoding results
-are cached in-process so the same string is not geocoded twice per request.
+are cached on the service instance so the same string is not geocoded twice
+within one request.
 """
 
 from __future__ import annotations
@@ -15,9 +16,6 @@ from typing import Iterable
 import openrouteservice.convert as ors_convert
 
 from .client import ORSClient, ORSClientError
-
-
-_GEOCODE_CACHE: dict[str, "GeocodedPlace"] = {}
 
 
 logger = logging.getLogger(__name__)
@@ -94,6 +92,7 @@ class RoutingService:
 
     def __init__(self, client: ORSClient | None = None) -> None:
         self._client = client or ORSClient()
+        self._geocode_cache: dict[str, GeocodedPlace] = {}
 
     def plan(
         self,
@@ -115,11 +114,11 @@ class RoutingService:
 
     def _geocode(self, query: str) -> GeocodedPlace:
         key = query.strip()
-        cached = _GEOCODE_CACHE.get(key)
+        cached = self._geocode_cache.get(key)
         if cached is not None:
             return cached
         place = _do_geocode(self._client, key)
-        _GEOCODE_CACHE[key] = place
+        self._geocode_cache[key] = place
         return place
 
     def _leg(self, start: GeocodedPlace, end: GeocodedPlace) -> RouteLeg:
@@ -181,7 +180,7 @@ def coordinate_at_mile(leg: RouteLeg, target_mile: float) -> Coordinate:
 
 
 def _do_geocode(client: ORSClient, query: str) -> GeocodedPlace:
-    """Geocode a single query string via ORS. Cache lives at module scope."""
+    """Geocode a single query string via ORS."""
     response = client.geocode(query)
     features = response.get("features") or []
     if not features:
