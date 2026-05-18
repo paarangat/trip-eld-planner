@@ -1,0 +1,118 @@
+.wrap {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--hairline);
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.head h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.legend {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+  background: var(--muted);
+}
+
+.mapHost {
+  height: 460px;
+  width: 100%;
+  background: var(--paper-2);
+}
+
+/* Custom div-icon markers */
+:global(.dispatch-marker) {
+  width: 28px;
+  height: 28px;
+  border-radius: 99px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--ink);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+:global(.dispatch-marker[data-kind="start"]) { background: var(--ink); }
+:global(.dispatch-marker[data-kind="pickup"]) { background: var(--status-driving); }
+:global(.dispatch-marker[data-kind="dropoff"]) { background: var(--signal); }
+:global(.dispatch-marker[data-kind="fuel"]) { background: var(--status-onduty); }
+:global(.dispatch-marker[data-kind="break"]) { background: var(--status-off); }
+:global(.dispatch-marker[data-kind="rest"]) { background: var(--status-sleeper); }
+:global(.dispatch-marker[data-kind="restart"]) { background: #3b3f48; }
+
+:global(.leaflet-container) {
+  font-family: var(--font-sans);
+}
+
+:global(.leaflet-popup-content-wrapper) {
+  border-radius: var(--radius);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+
+:global(.leaflet-popup-content) {
+  margin: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+:global(.leaflet-popup-tip) {
+  background: var(--surface);
+}
+
+.popupHead {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.popupTitle {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.popupTime {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 4px;
+}

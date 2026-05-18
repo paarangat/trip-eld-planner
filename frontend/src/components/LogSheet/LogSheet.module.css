@@ -1,0 +1,122 @@
+.sheet {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-1);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.headLeft {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.dayNum {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  color: var(--muted-2);
+}
+
+.date {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+  font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1;
+}
+
+.totals {
+  display: grid;
+  grid-template-columns: repeat(5, auto);
+  gap: var(--space-5);
+  font-family: var(--font-mono);
+}
+
+.totalCell {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+}
+
+.totalLabel {
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+
+.totalValue {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.grid {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.gridText {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.gridRowLabel {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--ink);
+  font-weight: 500;
+}
+
+.remarks {
+  border-top: 1px dashed var(--hairline);
+  padding-top: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.remarksTitle {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.remarkList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.remarkItem {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+
+.remarkTime {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

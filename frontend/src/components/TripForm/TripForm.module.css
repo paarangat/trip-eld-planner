@@ -1,0 +1,199 @@
+.form {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-1);
+  display: grid;
+  gap: var(--space-5);
+}
+
+.formHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.formHead h2 {
+  font-size: 1.6rem;
+}
+
+.fields {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.fieldHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.fieldNum {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  color: var(--muted-2);
+  font-weight: 500;
+}
+
+.fieldLabel {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+
+.fieldHint {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted-2);
+}
+
+.input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1.5px solid var(--hairline);
+  padding: 8px 0 10px;
+  font-size: 1.05rem;
+  color: var(--ink);
+  outline: 0;
+  transition: border-color 120ms ease, padding-left 120ms ease;
+  font-family: var(--font-sans);
+  caret-color: var(--signal);
+}
+
+.input::placeholder {
+  color: var(--muted-2);
+}
+
+.input:hover {
+  border-bottom-color: var(--ink-2);
+}
+
+.input:focus {
+  border-bottom-color: var(--signal);
+}
+
+.cycleField {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.cycleRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.cycleInput {
+  width: 90px;
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 500;
+  padding: 4px 0 6px;
+}
+
+.cycleUnit {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cycleRemaining {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.cycleRemaining b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.cycleBar {
+  position: relative;
+  height: 6px;
+  background: var(--hairline-soft);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.cycleBarFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--signal);
+  transition: width 240ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.cycleBarFill[data-level="warn"] {
+  background: #c47d1a;
+}
+
+.cycleBarFill[data-level="ok"] {
+  background: var(--status-driving);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--hairline);
+  margin-top: var(--space-2);
+}
+
+.submit {
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  letter-spacing: 0.005em;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: transform 80ms ease, background 120ms ease;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--signal);
+}
+
+.submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.submit:disabled {
+  opacity: 0.5;
+}
+
+.submitArrow {
+  font-family: var(--font-mono);
+  margin-left: 6px;
+  transition: transform 200ms ease;
+}
+
+.submit:hover:not(:disabled) .submitArrow {
+  transform: translateX(3px);
+}
+
+.note {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted-2);
+  margin-left: auto;
+}

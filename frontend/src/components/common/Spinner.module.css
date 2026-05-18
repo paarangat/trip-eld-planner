@@ -1,0 +1,42 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.bar {
+  position: relative;
+  height: 4px;
+  background: var(--hairline-soft);
+  border-radius: 99px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.barFill {
+  position: absolute;
+  height: 100%;
+  width: 35%;
+  background: var(--signal);
+  border-radius: 99px;
+  animation: slide 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+@keyframes slide {
+  0% { left: -35%; }
+  100% { left: 100%; }
+}
