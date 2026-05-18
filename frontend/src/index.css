@@ -11,35 +11,17 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: "ss01", "ss02";
-}
-
-/* Soft worksheet grain — keeps the background from feeling sterile */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: radial-gradient(
-    rgba(21, 23, 26, 0.035) 1px,
-    transparent 1px
-  );
-  background-size: 4px 4px;
-  z-index: 0;
-  opacity: 0.6;
 }
 
 #root {
-  position: relative;
-  z-index: 1;
   min-height: 100vh;
 }
 
@@ -47,30 +29,32 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: var(--font-display);
-  font-weight: 500;
-  color: var(--ink);
-  letter-spacing: -0.01em;
+  font-family: var(--font-sans);
+  color: var(--text);
   margin: 0;
-  font-feature-settings: "ss01";
-  font-variation-settings: "opsz" 36, "SOFT" 30, "WONK" 0;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 h1 {
-  font-size: clamp(2.4rem, 4vw, 3.6rem);
-  line-height: 1.02;
-  letter-spacing: -0.025em;
-  font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 h2 {
-  font-size: clamp(1.6rem, 2.4vw, 2.2rem);
-  line-height: 1.1;
+  font-size: 24px;
+  font-weight: 600;
 }
 
 h3 {
-  font-size: 1.15rem;
-  line-height: 1.2;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+h4 {
+  font-size: 16px;
+  font-weight: 600;
 }
 
 p {
@@ -100,40 +84,43 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Universal visible focus — never strip without a replacement */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 .mono {
   font-family: var(--font-mono);
-  font-feature-settings: "ss01", "zero", "cv01";
+  font-feature-settings: "zero", "ss01";
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
 }
 
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.divider {
+.sr-only {
+  position: absolute;
+  width: 1px;
   height: 1px;
-  background: var(--hairline);
-  width: 100%;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
   border: 0;
-  margin: 0;
 }
 
-.page {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: var(--space-6) var(--space-5);
-}
+/* Print stylesheet — used by Trip Detail's "Print logs" */
+@media print {
+  body {
+    background: #fff;
+  }
 
-@media (max-width: 768px) {
-  .page {
-    padding: var(--space-5) var(--space-4);
+  [data-print-hide],
+  nav,
+  aside,
+  header[role="banner"] {
+    display: none !important;
   }
 }
