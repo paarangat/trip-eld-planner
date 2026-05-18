@@ -29,6 +29,25 @@ const STOP_GLYPHS = {
 
 const LEGEND = ["start", "pickup", "fuel", "break", "rest", "dropoff"];
 
+// Hash precision (~11 m at the equator) is enough to detect a real point-set
+// change without churning on sub-meter float jitter.
+const FIT_HASH_PRECISION = 4;
+// Sampling threshold keeps the hash bounded for long polylines (thousands of
+// points); every 10th sample still captures any meaningful shape change.
+const FIT_HASH_SAMPLE_THRESHOLD = 200;
+const FIT_HASH_SAMPLE_STRIDE = 10;
+
+function isValidLatLng(lat, lng) {
+  return (
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
+  );
+}
+
 function dispatchIcon(kind) {
   return L.divIcon({
     className: "",
@@ -40,6 +59,21 @@ function dispatchIcon(kind) {
 
 function FitBounds({ points }) {
   const map = useMap();
+  // Hash the point set so the effect re-fires only when coordinates actually
+  // change — not when a parent re-renders and hands us a fresh array reference.
+  const hash = useMemo(() => {
+    const sampled =
+      points.length > FIT_HASH_SAMPLE_THRESHOLD
+        ? points.filter((_, i) => i % FIT_HASH_SAMPLE_STRIDE === 0)
+        : points;
+    return sampled
+      .map(
+        ([lat, lng]) =>
+          `${lat.toFixed(FIT_HASH_PRECISION)},${lng.toFixed(FIT_HASH_PRECISION)}`
+      )
+      .join("|");
+  }, [points]);
+
   useEffect(() => {
     if (points.length === 0) return;
     const bounds = L.latLngBounds(points);
@@ -47,7 +81,8 @@ function FitBounds({ points }) {
     // Invalidate after layout settles — fixes gray tiles in hidden containers.
     const timer = setTimeout(() => map.invalidateSize(), 100);
     return () => clearTimeout(timer);
-  }, [map, points]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, hash]);
   return null;
 }
 
@@ -56,7 +91,12 @@ export default function RouteMap({ route, stops = [], places = [] }) {
     const merged = [];
     for (const leg of route?.legs ?? []) {
       for (const point of leg.polyline ?? []) {
-        merged.push(point);
+        // ORS expects lon,lat but our polylines arrive lat,lng — drop any
+        // point that isn't a valid (lat, lng) pair so Leaflet doesn't crash
+        // on NaN or land a marker on null island.
+        if (Array.isArray(point) && isValidLatLng(point[0], point[1])) {
+          merged.push(point);
+        }
       }
     }
     return merged;
@@ -64,7 +104,7 @@ export default function RouteMap({ route, stops = [], places = [] }) {
 
   const allMarkers = useMemo(() => {
     const list = [];
-    if (places[0]) {
+    if (places[0] && isValidLatLng(places[0].lat, places[0].lng)) {
       list.push({
         kind: "start",
         label: places[0].label,
@@ -73,13 +113,20 @@ export default function RouteMap({ route, stops = [], places = [] }) {
       });
     }
     for (const stop of stops) {
-      list.push(stop);
+      if (isValidLatLng(stop?.lat, stop?.lng)) {
+        list.push(stop);
+      }
     }
     return list;
   }, [places, stops]);
 
   const fitPoints = useMemo(
-    () => [...polyline, ...allMarkers.map((m) => [m.lat, m.lng])],
+    () => [
+      ...polyline,
+      ...allMarkers
+        .filter((m) => isValidLatLng(m.lat, m.lng))
+        .map((m) => [m.lat, m.lng]),
+    ],
     [polyline, allMarkers]
   );
 
