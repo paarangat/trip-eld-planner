@@ -24,27 +24,34 @@ export default function TripHistory() {
       setLoading(false);
       return undefined;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     Promise.all(
       ids.map((id) =>
-        getTrip(id)
+        getTrip(id, { signal: controller.signal })
           .then((data) => ({ ...data, __failed: false }))
-          .catch(() => ({
-            id,
-            __failed: true,
-            inputs: {},
-            summary: { total_miles: 0, days: 0 },
-          })),
+          .catch((err) => {
+            if (err.name === "AbortError") throw err;
+            return {
+              id,
+              __failed: true,
+              inputs: {},
+              summary: { total_miles: 0, days: 0 },
+            };
+          }),
       ),
-    ).then((results) => {
-      if (!cancelled) {
+    )
+      .then((results) => {
+        if (controller.signal.aborted) return;
         setTrips(results);
         setLoading(false);
-      }
-    });
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        // Per-request errors are absorbed above; only AbortError reaches here.
+      });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [ids]);
 

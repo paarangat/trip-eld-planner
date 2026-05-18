@@ -38,24 +38,23 @@ export function useActiveTrip(timeZone = "America/Chicago") {
       setError(null);
       return undefined;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
-    getTrip(mostRecentId)
+    getTrip(mostRecentId, { signal: controller.signal })
       .then((data) => {
-        if (!cancelled) {
-          setTrip(data);
-          setLoading(false);
-        }
+        if (controller.signal.aborted) return;
+        setTrip(data);
+        setLoading(false);
       })
       .catch((err) => {
-        if (!cancelled) {
-          setError(err);
-          setLoading(false);
-        }
+        if (err.name === "AbortError") return;
+        if (controller.signal.aborted) return;
+        setError(err);
+        setLoading(false);
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [mostRecentId]);
 

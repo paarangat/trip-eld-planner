@@ -220,20 +220,28 @@ function useRecentList(count) {
       setLoading(false);
       return undefined;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     Promise.all(
       slice.map((id) =>
-        getTrip(id).catch(() => ({ id, __failed: true, inputs: {}, summary: {} })),
+        getTrip(id, { signal: controller.signal }).catch((err) => {
+          if (err.name === "AbortError") throw err;
+          return { id, __failed: true, inputs: {}, summary: {} };
+        }),
       ),
-    ).then((results) => {
-      if (!cancelled) {
+    )
+      .then((results) => {
+        if (controller.signal.aborted) return;
         setItems(results);
         setLoading(false);
-      }
-    });
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        // Per-request errors are already absorbed into __failed placeholders;
+        // only AbortError can reach here.
+      });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slice.join("|")]);
