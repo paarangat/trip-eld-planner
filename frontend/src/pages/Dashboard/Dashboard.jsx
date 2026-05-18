@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Button from "../../components/Button/Button.jsx";
 import Card from "../../components/Card/Card.jsx";
 import EmptyState from "../../components/EmptyState/EmptyState.jsx";
+import ErrorBanner from "../../components/common/ErrorBanner.jsx";
 import HOSClock from "../../components/HOSClock/HOSClock.jsx";
 import LogStrip from "../../components/LogStrip/LogStrip.jsx";
 import PageHeader from "../../components/PageHeader/PageHeader.jsx";
@@ -19,7 +20,9 @@ import styles from "./Dashboard.module.css";
 export default function Dashboard() {
   const { settings } = useSettings();
   const cycleHours = useCycleHours(settings);
-  const { trip, isActive, todayLog, loading } = useActiveTrip();
+  const { trip, isActive, todayLog, loading, error: activeTripError } = useActiveTrip(
+    settings.timezone,
+  );
 
   const clocks = computeClocks({
     trip: isActive ? trip : null,
@@ -38,6 +41,8 @@ export default function Dashboard() {
         title="Today, at a glance"
         description="Your on-the-clock status, your active trip, and your last five runs."
       />
+
+      <ErrorBanner error={activeTripError} title="Could not load trip status" />
 
       <section className={styles.clocks} aria-label="Hours-of-service clocks">
         <HOSClock
@@ -77,6 +82,19 @@ export default function Dashboard() {
           </Card>
         ) : isActive && trip ? (
           <ActiveTripCard trip={trip} todayLog={todayLog} />
+        ) : activeTripError ? (
+          <Card padded={false}>
+            <EmptyState
+              icon={<MapPinIcon />}
+              title="Trip status unavailable"
+              body="The most recent trip could not be loaded. Check your connection before relying on these clocks."
+              action={
+                <Button as={Link} to="/trips" variant="secondary" size="lg">
+                  Open trip history
+                </Button>
+              }
+            />
+          </Card>
         ) : (
           <Card padded={false}>
             <EmptyState
@@ -122,15 +140,20 @@ export default function Dashboard() {
                       {formatShort(t.inputs?.start_datetime)}
                     </span>
                     <span className={styles.recentRoute}>
-                      {t.inputs?.current_location ?? "—"} →{" "}
-                      {t.inputs?.dropoff_location ?? "—"}
+                      {t.__failed ? `Trip ${t.id} unavailable` : routeLabel(t.inputs)}
                     </span>
                     <span className={styles.recentMiles}>
-                      <span className="mono tabular">
-                        {Math.round(t.summary?.total_miles ?? 0).toLocaleString()}
-                      </span>{" "}
-                      mi · {t.summary?.days ?? 1}{" "}
-                      {(t.summary?.days ?? 1) === 1 ? "day" : "days"}
+                      {t.__failed ? (
+                        "Check connection"
+                      ) : (
+                        <>
+                          <span className="mono tabular">
+                            {Math.round(t.summary?.total_miles ?? 0).toLocaleString()}
+                          </span>{" "}
+                          mi · {t.summary?.days ?? 1}{" "}
+                          {(t.summary?.days ?? 1) === 1 ? "day" : "days"}
+                        </>
+                      )}
                     </span>
                     <span className={styles.recentArrow} aria-hidden>→</span>
                   </Link>
@@ -151,7 +174,7 @@ export default function Dashboard() {
             {todayLog ? (
               <div className={styles.todayBody}>
                 <div className={styles.todayMeta}>
-                  <span className={styles.mutedText}>{formatLongDate(todayLog.date)}</span>
+                  <span className={styles.mutedText}>{formatDateOnly(todayLog.date)}</span>
                   <span className={styles.todayDrive}>
                     <span className="mono tabular">
                       {formatHM(todayLog.totals?.driving_minutes ?? 0)}
@@ -218,11 +241,11 @@ function ActiveTripCard({ trip, todayLog }) {
         <div>
           <span className={styles.eyebrowSmall}>Active trip · {trip.id}</span>
           <h3 className={styles.activeTitle}>
-            {inputs.current_location} → {inputs.dropoff_location}
+            {routeLabel(inputs)}
           </h3>
         </div>
         <Button as={Link} to={`/trips/${trip.id}`} variant="secondary" size="md">
-          View full trip
+          Open trip plan
         </Button>
       </div>
       <div className={styles.activeStats}>
@@ -241,12 +264,19 @@ function ActiveTripCard({ trip, todayLog }) {
       </div>
       {todayLog ? (
         <div className={styles.activeStrip}>
-          <span className={styles.eyebrowSmall}>Today · {formatLongDate(todayLog.date)}</span>
+          <span className={styles.eyebrowSmall}>Today · {formatDateOnly(todayLog.date)}</span>
           <LogStrip segments={todayLog.segments ?? []} height={16} />
         </div>
       ) : null}
     </Card>
   );
+}
+
+function routeLabel(inputs = {}) {
+  const current = inputs.current_location || "—";
+  const pickup = inputs.pickup_location;
+  const dropoff = inputs.dropoff_location || "—";
+  return pickup ? `${current} → ${pickup} → ${dropoff}` : `${current} → ${dropoff}`;
 }
 
 function Stat({ label, value, unit }) {
@@ -309,10 +339,12 @@ function formatShort(iso) {
   }
 }
 
-function formatLongDate(iso) {
+function formatDateOnly(iso) {
   if (!iso) return "";
   try {
-    return new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, {
+    const [year, month, day] = iso.slice(0, 10).split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day, 12)).toLocaleDateString(undefined, {
+      timeZone: "UTC",
       weekday: "short",
       month: "short",
       day: "numeric",

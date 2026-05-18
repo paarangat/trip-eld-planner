@@ -53,7 +53,7 @@ const RULES = [
 export default function Compliance() {
   const { settings } = useSettings();
   const cycleHours = useCycleHours(settings);
-  const { trip, isActive, todayLog } = useActiveTrip();
+  const { trip, isActive, todayLog } = useActiveTrip(settings.timezone);
 
   const clocks = computeClocks({
     trip: isActive ? trip : null,
