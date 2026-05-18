@@ -33,7 +33,7 @@ export default function NewTrip() {
     current_location: presets?.current_location ?? "",
     pickup_location: presets?.pickup_location ?? "",
     dropoff_location: presets?.dropoff_location ?? "",
-    current_cycle_hours: Number(
+    current_cycle_hours: initialCycleHours(
       presets?.current_cycle_hours ?? settings.currentCycleHours ?? 0,
     ),
   }));
@@ -53,19 +53,26 @@ export default function NewTrip() {
     };
   }, []);
 
-  const cycleLeft = useMemo(
-    () => Math.max(0, MAX_CYCLE - form.current_cycle_hours),
+  const cycleHoursResult = useMemo(
+    () => parseCycleHours(form.current_cycle_hours),
     [form.current_cycle_hours],
   );
+  const cycleHours = cycleHoursResult.ok ? cycleHoursResult.value : 0;
+  const cycleLeft = useMemo(
+    () => Math.max(0, MAX_CYCLE - cycleHours),
+    [cycleHours],
+  );
 
-  const cycleBlocked = form.current_cycle_hours >= MAX_CYCLE;
+  const cycleInvalid = !cycleHoursResult.ok;
+  const cycleBlocked = !cycleInvalid && cycleHours >= MAX_CYCLE;
 
   const allFilled =
     form.current_location.trim() &&
     form.pickup_location.trim() &&
     form.dropoff_location.trim();
 
-  const canSubmit = !loading && allFilled && online && !cycleBlocked;
+  const canSubmit =
+    !loading && allFilled && online && !cycleInvalid && !cycleBlocked;
 
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -78,7 +85,7 @@ export default function NewTrip() {
       current_location: form.current_location.trim(),
       pickup_location: form.pickup_location.trim(),
       dropoff_location: form.dropoff_location.trim(),
-      current_cycle_hours: Number(form.current_cycle_hours) || 0,
+      current_cycle_hours: cycleHoursResult.value,
     };
     try {
       const result = await planTrip(payload);
@@ -178,7 +185,14 @@ export default function NewTrip() {
             hours of cycle time left before a 34-hour restart.
           </p>
 
-          {cycleBlocked ? (
+          {cycleInvalid ? (
+            <div className={styles.blocker} role="alert">
+              <Badge tone="danger" dot>Invalid hours</Badge>
+              <span>
+                Enter cycle hours between 0 and 70 before planning.
+              </span>
+            </div>
+          ) : cycleBlocked ? (
             <div className={styles.blocker} role="alert">
               <Badge tone="danger" dot>Cycle exhausted</Badge>
               <span>
@@ -207,6 +221,22 @@ export default function NewTrip() {
       </form>
     </>
   );
+}
+
+function initialCycleHours(value) {
+  const parsed = parseCycleHours(value);
+  return parsed.ok ? parsed.value : 0;
+}
+
+function parseCycleHours(value) {
+  if (value === "" || value == null) {
+    return { ok: false, value: null };
+  }
+  const hours = Number(value);
+  if (!Number.isFinite(hours) || hours < 0 || hours > MAX_CYCLE) {
+    return { ok: false, value: null };
+  }
+  return { ok: true, value: hours };
 }
 
 function PinIcon() {
