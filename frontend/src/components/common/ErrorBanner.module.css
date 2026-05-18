@@ -1,20 +1,21 @@
 .banner {
-  background: var(--signal-tint);
-  border: 1px solid #e9bdb4;
-  color: var(--signal-ink);
-  border-radius: var(--radius);
-  padding: var(--space-3) var(--space-4);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
   display: grid;
   gap: 4px;
 }
 
 .label {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.18em;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .message {
-  font-size: 0.9rem;
+  font-size: 14px;
+  color: var(--text);
 }

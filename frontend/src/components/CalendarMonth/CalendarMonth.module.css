@@ -1,0 +1,91 @@
+.wrap {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.dowRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-2);
+}
+
+.dow {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: left;
+  padding: 0 4px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-2);
+}
+
+.cell,
+.blank {
+  min-height: 92px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  align-content: start;
+  text-align: left;
+  color: var(--text);
+}
+
+.blank {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--border);
+  opacity: 0.4;
+}
+
+.cellActive {
+  cursor: pointer;
+  transition: border-color 80ms ease, box-shadow 80ms ease;
+}
+
+.cellActive:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.cellEmpty {
+  color: var(--text-faint);
+}
+
+.today {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.dayNum {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.cellActive .dayNum {
+  color: var(--text);
+}
+
+.hours {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .cell, .blank {
+    min-height: 64px;
+    padding: 6px;
+  }
+  .hours {
+    display: none;
+  }
+}

@@ -116,7 +116,7 @@ export default function RouteMap({ route, stops = [], places = [] }) {
           />
           <Polyline
             positions={polyline}
-            pathOptions={{ color: "#15171a", weight: 4, opacity: 0.85 }}
+            pathOptions={{ color: "#2563eb", weight: 4, opacity: 0.85 }}
           />
           {allMarkers.map((marker, idx) => (
             <Marker
@@ -148,21 +148,21 @@ export default function RouteMap({ route, stops = [], places = [] }) {
 function legendColor(kind) {
   switch (kind) {
     case "start":
-      return "#15171a";
+      return "#0f172a";
     case "pickup":
-      return "#2a6f4f";
+      return "var(--success)";
     case "dropoff":
-      return "#c0392b";
+      return "var(--danger)";
     case "fuel":
-      return "#c47d1a";
+      return "var(--warn)";
     case "break":
-      return "#b4a98a";
+      return "var(--status-off)";
     case "rest":
-      return "#6b7d8e";
+      return "var(--status-sleeper)";
     case "restart":
-      return "#3b3f48";
+      return "var(--primary)";
     default:
-      return "#6e7079";
+      return "var(--text-muted)";
   }
 }
 

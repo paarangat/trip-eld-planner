@@ -19,14 +19,17 @@ export default class ErrorBoundary extends Component {
             maxWidth: 640,
             margin: "10vh auto",
             padding: "2rem",
-            background: "#fff",
-            border: "1px solid #d9d5c5",
-            borderRadius: 14,
-            fontFamily: "ui-sans-serif, system-ui, sans-serif",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            color: "var(--text)",
+            fontFamily: "Inter, system-ui, sans-serif",
           }}
         >
-          <h2 style={{ marginTop: 0 }}>Something went wrong</h2>
-          <p>Try reloading the page. If the problem persists, contact dispatch.</p>
+          <h2 style={{ marginTop: 0, fontSize: 20 }}>Something went wrong</h2>
+          <p style={{ color: "var(--text-muted)" }}>
+            Try reloading the page. If the problem persists, contact dispatch.
+          </p>
         </div>
       );
     }

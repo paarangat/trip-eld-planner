@@ -1,0 +1,68 @@
+.viewport {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: grid;
+  gap: 8px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  min-width: 240px;
+  max-width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+  color: var(--text);
+  animation: slideUp 180ms ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--text-muted);
+  flex: 0 0 auto;
+}
+
+.t_success .dot { background: var(--success); }
+.t_warn .dot    { background: var(--warn); }
+.t_danger .dot  { background: var(--danger); }
+.t_info .dot    { background: var(--primary); }
+
+.message {
+  font-size: 14px;
+  flex: 1 1 auto;
+}
+
+.close {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  border-radius: 99px;
+}
+
+.close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}

@@ -1,0 +1,104 @@
+.card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  align-content: start;
+  justify-items: center;
+  text-align: center;
+}
+
+.card[data-level="ok"] {
+  color: var(--success);
+}
+.card[data-level="warn"] {
+  color: var(--warn);
+}
+.card[data-level="danger"] {
+  color: var(--danger);
+}
+.card[data-level="idle"] {
+  color: var(--text-faint);
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.dial {
+  position: relative;
+  display: inline-block;
+}
+
+.svg {
+  display: block;
+}
+
+.dialCenter {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.num {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text);
+}
+
+.sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 100px;
+}
+
+/* Sizes */
+.s_lg .svg {
+  width: 160px;
+  height: 160px;
+}
+.s_lg .num {
+  font-size: 32px;
+}
+
+.s_md {
+  padding: var(--space-4);
+}
+.s_md .svg {
+  width: 120px;
+  height: 120px;
+}
+.s_md .num {
+  font-size: 24px;
+}
+.s_md .sub {
+  font-size: 11px;
+}
+
+.s_sm {
+  padding: var(--space-3);
+}
+.s_sm .svg {
+  width: 88px;
+  height: 88px;
+}
+.s_sm .num {
+  font-size: 18px;
+}
+.s_sm .label {
+  font-size: 11px;
+}
+.s_sm .sub {
+  font-size: 10px;
+}

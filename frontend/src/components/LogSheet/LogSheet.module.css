@@ -1,9 +1,8 @@
 .sheet {
   background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: var(--space-5);
-  box-shadow: var(--shadow-1);
   display: grid;
   gap: var(--space-4);
 }
@@ -24,23 +23,21 @@
 
 .dayNum {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.18em;
-  color: var(--muted-2);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
 }
 
 .date {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  letter-spacing: -0.01em;
-  font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .totals {
   display: grid;
   grid-template-columns: repeat(5, auto);
   gap: var(--space-5);
-  font-family: var(--font-mono);
 }
 
 .totalCell {
@@ -50,17 +47,18 @@
 }
 
 .totalLabel {
-  font-size: 0.62rem;
-  letter-spacing: 0.18em;
+  font-size: 11px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted-2);
+  color: var(--text-muted);
 }
 
 .totalValue {
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
 }
 
 .grid {
@@ -72,30 +70,30 @@
 .gridText {
   font-family: var(--font-mono);
   font-size: 9px;
-  fill: var(--muted);
+  fill: var(--text-muted);
   letter-spacing: 0.04em;
 }
 
 .gridRowLabel {
   font-family: var(--font-mono);
   font-size: 11px;
-  fill: var(--ink);
+  fill: var(--text);
   font-weight: 500;
 }
 
 .remarks {
-  border-top: 1px dashed var(--hairline);
+  border-top: 1px dashed var(--border);
   padding-top: var(--space-3);
   display: grid;
   gap: var(--space-2);
 }
 
 .remarksTitle {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.18em;
+  font-size: 11px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 .remarkList {
@@ -112,11 +110,18 @@
   grid-template-columns: 70px 1fr;
   gap: var(--space-3);
   font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: var(--ink-2);
+  font-size: 13px;
+  color: var(--text);
 }
 
 .remarkTime {
-  color: var(--muted);
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .totals {
+    grid-template-columns: repeat(3, auto);
+    gap: var(--space-3);
+  }
 }

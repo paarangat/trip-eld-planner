@@ -1,0 +1,41 @@
+.card {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.num {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text);
+}
+
+.unit {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}

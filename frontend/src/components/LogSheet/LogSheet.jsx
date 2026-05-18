@@ -69,19 +69,13 @@ export default function LogSheet({ log, dayNumber }) {
         <path
           d={stepPath}
           fill="none"
-          stroke="#15171a"
+          stroke="var(--text)"
           strokeWidth={2.25}
           strokeLinejoin="miter"
           strokeLinecap="butt"
         />
         {changeDots.map((dot, i) => (
-          <circle
-            key={i}
-            cx={dot.x}
-            cy={dot.y}
-            r={2.5}
-            fill="#15171a"
-          />
+          <circle key={i} cx={dot.x} cy={dot.y} r={2.5} fill="var(--text)" />
         ))}
       </svg>
 
@@ -122,7 +116,7 @@ function Grid() {
         y1={PAD_T}
         x2={x}
         y2={PAD_T + ROW_H * 4}
-        stroke="#d9d5c5"
+        stroke="var(--border-strong)"
         strokeWidth={h % 6 === 0 ? 1.4 : 0.8}
       />
     );
@@ -150,7 +144,7 @@ function Grid() {
           y1={PAD_T}
           x2={x}
           y2={PAD_T + ROW_H * 4}
-          stroke="#ece8db"
+          stroke="var(--border)"
           strokeWidth={0.5}
         />
       );
@@ -167,7 +161,7 @@ function Grid() {
         y1={y}
         x2={PAD_L + GRID_W}
         y2={y}
-        stroke="#d9d5c5"
+        stroke="var(--border-strong)"
         strokeWidth={r === 0 || r === 4 ? 1.4 : 0.8}
       />
     );
