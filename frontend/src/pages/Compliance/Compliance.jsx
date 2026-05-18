@@ -60,7 +60,7 @@ export default function Compliance() {
   // the cycle clock falls back to the driver's starting state from settings.
   const activeLog = isActive ? todayLog : null;
   const backendClocks = activeLog?.hos_clocks ?? {};
-  const fallbackCycleLeft = Math.max(0, (70 - (cycleHours ?? 0)) * 60);
+  const fallbackCycleLeft = Math.max(0, HOS_LIMITS.CYCLE - (cycleHours ?? 0) * 60);
   const clocks = {
     driveLeft: backendClocks.drive_left_minutes ?? null,
     windowLeft: backendClocks.window_left_minutes ?? null,

@@ -30,7 +30,7 @@ export default function Dashboard() {
   // state from settings (not HOS engine math — just (70 - cycle_used) * 60).
   const activeLog = isActive ? todayLog : null;
   const backendClocks = activeLog?.hos_clocks ?? {};
-  const fallbackCycleLeft = Math.max(0, (70 - (cycleHours ?? 0)) * 60);
+  const fallbackCycleLeft = Math.max(0, HOS_LIMITS.CYCLE - (cycleHours ?? 0) * 60);
   const clocks = {
     driveLeft: backendClocks.drive_left_minutes ?? null,
     windowLeft: backendClocks.window_left_minutes ?? null,
