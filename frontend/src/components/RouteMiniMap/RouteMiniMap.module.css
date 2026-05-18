@@ -1,0 +1,45 @@
+.host {
+  width: 100%;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+:global(.mini-marker) {
+  width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--text);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+:global(.mini-marker[data-kind="start"])   { background: #0f172a; }
+:global(.mini-marker[data-kind="pickup"])  { background: var(--success); }
+:global(.mini-marker[data-kind="dropoff"]) { background: var(--danger); }
+:global(.mini-marker[data-kind="fuel"])    { background: var(--warn); }
+:global(.mini-marker[data-kind="break"])   { background: var(--status-off); }
+:global(.mini-marker[data-kind="rest"])    { background: var(--status-sleeper); }
+:global(.mini-marker[data-kind="restart"]) { background: var(--primary); }
+:global(.mini-marker[data-kind="current"]) {
+  background: var(--primary);
+  width: 16px;
+  height: 16px;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+}
