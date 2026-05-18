@@ -1,40 +1,57 @@
+/* Design tokens — dispatch-console aesthetic.
+ *
+ * The visual language: industrial paper, deep ink, single signal accent.
+ * No gradients on the chrome, no glass, no glow. The only "noise" is the
+ * grain layered on the background to read like an off-white worksheet.
+ */
+
 :root {
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --color-text: #e2e8f0;
-  --color-muted: #94a3b8;
-  --color-accent: #38bdf8;
-  --color-danger: #f87171;
+  /* Surface */
+  --paper: #f6f4ec;
+  --paper-2: #efece2;
+  --surface: #ffffff;
+  --ink: #15171a;
+  --ink-2: #2c2f36;
+  --muted: #6e7079;
+  --muted-2: #93959d;
+  --hairline: #d9d5c5;
+  --hairline-soft: #ece8db;
 
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 1rem;
-  --space-4: 1.5rem;
-  --space-5: 2rem;
+  /* Signal accent — railway red, used sparingly */
+  --signal: #c0392b;
+  --signal-ink: #7a1d12;
+  --signal-tint: #f7e3df;
 
-  --radius: 0.5rem;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
+  /* HOS duty-status palette */
+  --status-off: #b4a98a;        /* warm khaki */
+  --status-sleeper: #6b7d8e;    /* slate */
+  --status-driving: #2a6f4f;    /* forest */
+  --status-onduty: #c47d1a;     /* amber */
 
-body {
-  margin: 0;
-  font-family: var(--font-sans);
-  background: var(--color-bg);
-  color: var(--color-text);
-}
+  /* Type */
+  --font-display: "Fraunces", "Iowan Old Style", "Hoefler Text", Georgia, serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
 
-button {
-  background: var(--color-accent);
-  border: none;
-  border-radius: var(--radius);
-  color: #0b1220;
-  cursor: pointer;
-  font-weight: 600;
-  padding: var(--space-2) var(--space-4);
-}
+  /* Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
 
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 14px;
+
+  --shadow-1: 0 1px 0 rgba(21, 23, 26, 0.04), 0 1px 2px rgba(21, 23, 26, 0.06);
+  --shadow-2: 0 1px 0 rgba(21, 23, 26, 0.04), 0 4px 14px rgba(21, 23, 26, 0.08);
+
+  --max-width: 1200px;
+
+  color-scheme: light;
 }
