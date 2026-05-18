@@ -1,0 +1,40 @@
+:root {
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-text: #e2e8f0;
+  --color-muted: #94a3b8;
+  --color-accent: #38bdf8;
+  --color-danger: #f87171;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+
+  --radius: 0.5rem;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+button {
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #0b1220;
+  cursor: pointer;
+  font-weight: 600;
+  padding: var(--space-2) var(--space-4);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
