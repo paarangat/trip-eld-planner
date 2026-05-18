@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any
 
 from apps.eld.models import DailyLog, LogSegment
+from apps.hos.clocks import HOSClocks, compute_clocks
 from apps.hos.models import DutyStatus, StopKind, Timeline
 from apps.routing.service import Coordinate, RouteLeg, TripRoute
 
@@ -63,10 +64,41 @@ def build_trip_response(
             ],
         },
         "stops": _serialize_stops(timeline),
-        "daily_logs": [
-            _serialize_daily_log(log, home_terminal_timezone) for log in daily_logs
-        ],
+        "daily_logs": _serialize_daily_logs(
+            daily_logs,
+            home_terminal_timezone=home_terminal_timezone,
+            current_cycle_hours=float(inputs["current_cycle_hours"]),
+        ),
     }
+
+
+def _serialize_daily_logs(
+    daily_logs: list[DailyLog],
+    *,
+    home_terminal_timezone: str,
+    current_cycle_hours: float,
+) -> list[dict[str, Any]]:
+    """Serialize the per-day logs, attaching the four HOS clocks to each.
+
+    The cycle clock accumulates across days, so we walk the logs in order and
+    feed the running total of (driving + on-duty-not-driving) minutes into
+    ``compute_clocks`` as ``prior_on_duty_plus_drive_minutes``.
+    """
+    serialized: list[dict[str, Any]] = []
+    prior_on_duty_plus_drive = 0
+    for log in daily_logs:
+        clocks = compute_clocks(
+            segments=log.segments,
+            prior_on_duty_plus_drive_minutes=prior_on_duty_plus_drive,
+            current_cycle_hours=current_cycle_hours,
+        )
+        serialized.append(
+            _serialize_daily_log(log, home_terminal_timezone, clocks)
+        )
+        prior_on_duty_plus_drive += (
+            log.total_driving_minutes + log.total_on_duty_minutes
+        )
+    return serialized
 
 
 # ---------------------------------------------------------------------------
@@ -112,7 +144,9 @@ def _serialize_stops(timeline: Timeline) -> list[dict[str, Any]]:
     return stops
 
 
-def _serialize_daily_log(log: DailyLog, home_terminal_timezone: str) -> dict[str, Any]:
+def _serialize_daily_log(
+    log: DailyLog, home_terminal_timezone: str, clocks: HOSClocks
+) -> dict[str, Any]:
     return {
         "date": log.log_date.isoformat(),
         "home_terminal_timezone": home_terminal_timezone,
@@ -122,6 +156,12 @@ def _serialize_daily_log(log: DailyLog, home_terminal_timezone: str) -> dict[str
             "sleeper_minutes": log.total_sleeper_minutes,
             "driving_minutes": log.total_driving_minutes,
             "on_duty_minutes": log.total_on_duty_minutes,
+        },
+        "hos_clocks": {
+            "drive_left_minutes": clocks.drive_left_minutes,
+            "window_left_minutes": clocks.window_left_minutes,
+            "break_left_minutes": clocks.break_left_minutes,
+            "cycle_left_minutes": clocks.cycle_left_minutes,
         },
         "total_miles": round(log.total_miles, 1),
         "remarks": [

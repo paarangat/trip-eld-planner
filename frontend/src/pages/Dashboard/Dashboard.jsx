@@ -14,7 +14,7 @@ import { useActiveTrip } from "../../hooks/useActiveTrip.js";
 import { useRecentTrips } from "../../hooks/useRecentTrips.js";
 import { useSettings } from "../../hooks/useSettings.js";
 import { useCycleHours } from "../../hooks/useCycleHours.js";
-import { HOS_LIMITS, computeClocks } from "../../lib/hosClocks.js";
+import { HOS_LIMITS } from "../../lib/hosLimits.js";
 import styles from "./Dashboard.module.css";
 
 export default function Dashboard() {
@@ -24,11 +24,19 @@ export default function Dashboard() {
     settings.timezone,
   );
 
-  const clocks = computeClocks({
-    trip: isActive ? trip : null,
-    todayLog: isActive ? todayLog : null,
-    cycleStartHours: cycleHours,
-  });
+  // The backend attaches the four remaining-time clocks to each daily log.
+  // When no active trip / no log for today, the three trip-dependent clocks
+  // render as idle ("—") and the cycle clock shows the driver's starting
+  // state from settings (not HOS engine math — just (70 - cycle_used) * 60).
+  const activeLog = isActive ? todayLog : null;
+  const backendClocks = activeLog?.hos_clocks ?? {};
+  const fallbackCycleLeft = Math.max(0, (70 - (cycleHours ?? 0)) * 60);
+  const clocks = {
+    driveLeft: backendClocks.drive_left_minutes ?? null,
+    windowLeft: backendClocks.window_left_minutes ?? null,
+    breakLeft: backendClocks.break_left_minutes ?? null,
+    cycleLeft: backendClocks.cycle_left_minutes ?? fallbackCycleLeft,
+  };
 
   const recentTrips = useRecentList(5);
 

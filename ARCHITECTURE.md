@@ -337,6 +337,12 @@ Create and compute a trip.
       "date": "2026-05-18",
       "segments": [ { "status": "driving", "start": "06:00", "end": "11:00", "location": "..." } ],
       "totals": { "off_duty": 10, "sleeper": 0, "driving": 11, "on_duty": 3 },
+      "hos_clocks": {
+        "drive_left_minutes": 0,
+        "window_left_minutes": 0,
+        "break_left_minutes": 0,
+        "cycle_left_minutes": 1830
+      },
       "total_miles": 600,
       "remarks": [ { "time": "06:00", "location": "Chicago, IL" } ]
     }

@@ -4,7 +4,7 @@ import PageHeader from "../../components/PageHeader/PageHeader.jsx";
 import { useActiveTrip } from "../../hooks/useActiveTrip.js";
 import { useCycleHours } from "../../hooks/useCycleHours.js";
 import { useSettings } from "../../hooks/useSettings.js";
-import { HOS_LIMITS, computeClocks } from "../../lib/hosClocks.js";
+import { HOS_LIMITS } from "../../lib/hosLimits.js";
 import styles from "./Compliance.module.css";
 
 const RULES = [
@@ -53,13 +53,20 @@ const RULES = [
 export default function Compliance() {
   const { settings } = useSettings();
   const cycleHours = useCycleHours(settings);
-  const { trip, isActive, todayLog } = useActiveTrip(settings.timezone);
+  const { isActive, todayLog } = useActiveTrip(settings.timezone);
 
-  const clocks = computeClocks({
-    trip: isActive ? trip : null,
-    todayLog: isActive ? todayLog : null,
-    cycleStartHours: cycleHours,
-  });
+  // Backend supplies the four remaining-time clocks on the active log. When
+  // there is no active trip, the three log-dependent clocks render idle and
+  // the cycle clock falls back to the driver's starting state from settings.
+  const activeLog = isActive ? todayLog : null;
+  const backendClocks = activeLog?.hos_clocks ?? {};
+  const fallbackCycleLeft = Math.max(0, (70 - (cycleHours ?? 0)) * 60);
+  const clocks = {
+    driveLeft: backendClocks.drive_left_minutes ?? null,
+    windowLeft: backendClocks.window_left_minutes ?? null,
+    breakLeft: backendClocks.break_left_minutes ?? null,
+    cycleLeft: backendClocks.cycle_left_minutes ?? fallbackCycleLeft,
+  };
 
   return (
     <>
