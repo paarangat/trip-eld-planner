@@ -157,6 +157,25 @@ class TieBreakingPrecedence(unittest.TestCase):
         between = notes[first_break_idx + 1 : first_reset_idx]
         self.assertNotIn("30-min break", between)
 
+    def test_break_takes_precedence_over_fuel_at_exact_tie(self):
+        route = _route([_leg("A", "B", miles=1000, hours=8.0)])
+        timeline = schedule_trip(route, current_cycle_hours=0.0, start_datetime=START)
+        notes = [seg.note for seg in timeline.segments]
+
+        self.assertLess(notes.index("30-min break"), notes.index("Fuel stop"))
+        self.assertLess(notes.index("Fuel stop"), notes.index("Pickup"))
+
+    def test_ten_hour_reset_takes_precedence_over_fuel_at_exact_tie(self):
+        route = _route([_leg("A", "B", miles=1000, hours=11.0)])
+        timeline = schedule_trip(route, current_cycle_hours=0.0, start_datetime=START)
+        notes = [seg.note for seg in timeline.segments]
+
+        first_break_idx = notes.index("30-min break")
+        first_reset_idx = notes.index("10-hr reset")
+        first_fuel_idx = notes.index("Fuel stop")
+        self.assertLess(first_break_idx, first_reset_idx)
+        self.assertLess(first_reset_idx, first_fuel_idx)
+
 
 class ConstraintsRespected(unittest.TestCase):
     """Walk the timeline manually and verify no limit is exceeded between resets."""

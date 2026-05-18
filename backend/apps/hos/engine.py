@@ -117,31 +117,12 @@ def _drive_leg(segments: list[DutySegment], state: _State, leg: RouteLeg) -> Non
     miles_driven_on_leg = 0.0
 
     while minutes_driven_on_leg < leg_total_minutes:
-        # 1. Cycle exhausted?
-        if state.cycle_minutes_used >= CYCLE_LIMIT_MINUTES:
-            _insert_restart(
-                segments, state, _location_on_leg(leg, miles_driven_on_leg)
-            )
-            continue
-
-        # 2. 11-hr or 14-hr exhausted?
-        if (
-            state.driving_minutes_in_shift >= MAX_DRIVING_MINUTES
-            or state.window_minutes_used >= MAX_ON_DUTY_WINDOW_MINUTES
+        if _insert_due_event(
+            segments, state, _location_on_leg(leg, miles_driven_on_leg)
         ):
-            _insert_ten_hour_reset(
-                segments, state, _location_on_leg(leg, miles_driven_on_leg)
-            )
             continue
 
-        # 3. 8-hr cumulative driving since last break?
-        if state.driving_minutes_since_break >= CUMULATIVE_DRIVING_BEFORE_BREAK_MINUTES:
-            _insert_thirty_min_break(
-                segments, state, _location_on_leg(leg, miles_driven_on_leg)
-            )
-            continue
-
-        # 4. Compute how long we can drive before any constraint triggers.
+        # Compute how long we can drive before any constraint triggers.
         minutes_to_window = MAX_ON_DUTY_WINDOW_MINUTES - state.window_minutes_used
         minutes_to_driving_limit = MAX_DRIVING_MINUTES - state.driving_minutes_in_shift
         minutes_to_break = (
@@ -170,16 +151,37 @@ def _drive_leg(segments: list[DutySegment], state: _State, leg: RouteLeg) -> Non
         minutes_driven_on_leg += drive_minutes
         miles_driven_on_leg += miles_this_chunk
 
-        # 5. If we landed exactly on a fuel mile, insert the fuel stop now.
-        if state.miles_driven_total + 0.001 >= state.next_fuel_at_miles:
-            _insert_fuel_stop(
-                segments, state, _location_on_leg(leg, miles_driven_on_leg)
-            )
+    while _insert_due_event(
+        segments, state, _location_on_leg(leg, miles_driven_on_leg)
+    ):
+        pass
 
 
 # ---------------------------------------------------------------------------
 # Event insertion (each updates state consistently)
 # ---------------------------------------------------------------------------
+
+
+def _insert_due_event(
+    segments: list[DutySegment], state: _State, location: Location
+) -> bool:
+    """Insert the highest-priority event due at the current point, if any."""
+    if state.cycle_minutes_used >= CYCLE_LIMIT_MINUTES:
+        _insert_restart(segments, state, location)
+        return True
+    if (
+        state.driving_minutes_in_shift >= MAX_DRIVING_MINUTES
+        or state.window_minutes_used >= MAX_ON_DUTY_WINDOW_MINUTES
+    ):
+        _insert_ten_hour_reset(segments, state, location)
+        return True
+    if state.driving_minutes_since_break >= CUMULATIVE_DRIVING_BEFORE_BREAK_MINUTES:
+        _insert_thirty_min_break(segments, state, location)
+        return True
+    if _fuel_due(state):
+        _insert_fuel_stop(segments, state, location)
+        return True
+    return False
 
 
 def _append_driving_segment(
@@ -363,6 +365,10 @@ def _minutes_to_next_fuel(state: _State, speed_miles_per_minute: float) -> int:
     if miles_to_fuel <= 0 or speed_miles_per_minute <= 0:
         return 1
     return max(1, math.ceil(miles_to_fuel / speed_miles_per_minute))
+
+
+def _fuel_due(state: _State) -> bool:
+    return state.miles_driven_total + 0.001 >= state.next_fuel_at_miles
 
 
 def _location_on_leg(leg: RouteLeg, miles_into_leg: float) -> Location:
