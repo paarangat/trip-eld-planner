@@ -1,0 +1,89 @@
+.row {
+  display: grid;
+  grid-template-columns: 80px 1fr 80px 80px 110px 24px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  transition: border-color 80ms ease, background-color 80ms ease;
+  min-height: 56px;
+}
+
+.row:hover {
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+.date {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.route {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.place {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 28ch;
+}
+
+.arrow {
+  color: var(--text-faint);
+  flex: 0 0 auto;
+}
+
+.miles,
+.days {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.miles span,
+.days span {
+  color: var(--text);
+}
+
+.status {
+  display: inline-flex;
+  justify-content: flex-start;
+}
+
+.action {
+  color: var(--text-faint);
+}
+
+@media (max-width: 768px) {
+  .row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "route status"
+      "meta meta";
+    padding: var(--space-3);
+  }
+  .date {
+    grid-area: meta;
+  }
+  .route {
+    grid-area: route;
+  }
+  .status {
+    grid-area: status;
+  }
+  .miles, .days, .action {
+    display: none;
+  }
+}

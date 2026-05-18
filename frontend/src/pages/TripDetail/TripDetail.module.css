@@ -1,0 +1,119 @@
+.body {
+  margin-top: var(--space-4);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.overview {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+@media (max-width: 640px) {
+  .statRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.overviewMap {
+  display: grid;
+}
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .summaryRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.bigDate {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.unitSmall {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.logsStack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.stopsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.stopsTable th,
+.stopsTable td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.stopsTable th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--surface-2);
+}
+
+.stopsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.note {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.skelHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.failBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-4);
+  font-size: 14px;
+}
+
+.failActions {
+  display: flex;
+  gap: 8px;
+}

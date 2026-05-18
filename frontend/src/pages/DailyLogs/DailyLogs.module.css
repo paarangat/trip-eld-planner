@@ -1,0 +1,34 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: var(--space-4);
+}
+
+.navBtn {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+}
+
+.navBtn:hover {
+  background: var(--surface-2);
+}
+
+.month {
+  font-size: 17px;
+  font-weight: 600;
+  min-width: 160px;
+  text-align: center;
+}
+
+.todayBtn {
+  margin-left: auto;
+}

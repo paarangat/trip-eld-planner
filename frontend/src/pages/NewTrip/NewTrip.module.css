@@ -1,0 +1,70 @@
+.form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.section {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 var(--space-3);
+  color: var(--text);
+}
+
+.fields {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.helper {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-3);
+}
+
+.helperBig {
+  font-size: 14px;
+  color: var(--text);
+  margin: var(--space-2) 0 0;
+}
+
+.helperBig strong {
+  font-weight: 600;
+}
+
+.blocker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-3);
+  font-size: 13px;
+}
+
+.offlineBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-4);
+  font-size: 13px;
+}
+
+.submitRow {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.note {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
