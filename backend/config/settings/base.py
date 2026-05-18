@@ -40,6 +40,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "apps.trips",
+    "apps.routing",
+    "apps.hos",
+    "apps.eld",
 ]
 
 MIDDLEWARE = [
