@@ -40,7 +40,7 @@ turns that schedule into log sheets.
 | Routing + geocoding | OpenRouteService (ORS) | Free tier (2,000 directions/day), one key covers both, has a heavy-vehicle profile, official Python client |
 | Database | PostgreSQL (prod) / SQLite (dev) | Stores saved trips for shareable result links |
 | Frontend hosting | Vercel | Per the brief |
-| Backend hosting | Render or Railway (free tier) | Django runs poorly on Vercel's serverless model |
+| Backend hosting | Railway | Django runs poorly on Vercel's serverless model; Railway gives a managed Postgres in the same project with one click |
 
 **Architectural rule:** the ORS API key lives **only on the backend**. ORS keys
 must never be used client-side (the browser would expose the key). React never
@@ -58,7 +58,7 @@ flowchart LR
         Logs[ELD Log Sheets - SVG]
     end
 
-    subgraph Server["Django + DRF (Render/Railway)"]
+    subgraph Server["Django + DRF (Railway)"]
         API[REST API Layer]
         RoutingSvc[Routing Service]
         HOS[HOS Scheduling Engine]
@@ -418,9 +418,39 @@ re-calling ORS for a trip that was already planned.
 
 | Component | Platform | Notes |
 |---|---|---|
-| Frontend | Vercel | Build the React app; set `VITE_API_BASE_URL` to the backend URL |
-| Backend | Render / Railway | Set `ORS_API_KEY`, `DATABASE_URL`, `DJANGO_SETTINGS_MODULE=config.settings.prod`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` |
-| Database | Render / Railway managed PostgreSQL | Free tier is sufficient |
+| Frontend | Vercel | Build the React app from the `frontend/` directory; set `VITE_API_BASE_URL` to the Railway backend URL |
+| Backend | Railway | One service per repo's `backend/` directory; environment variables set in the Railway dashboard |
+| Database | Railway managed PostgreSQL | Added as a separate plugin in the same Railway project; `DATABASE_URL` is auto-injected into the backend service |
+
+### 13.1 Railway service configuration
+
+The backend service runs from `backend/` with:
+
+- **Build:** Railway's Nixpacks detects Django automatically (`requirements.txt`
+  + `manage.py`). No build command needed unless customizing.
+- **Start command:** `gunicorn config.wsgi --bind 0.0.0.0:$PORT --log-file -`.
+  `$PORT` is provided by Railway — never hard-code a port.
+- **Pre-deploy / release command:** `python manage.py migrate --noinput`. This
+  runs against the production Postgres before the new release goes live so the
+  schema is always current.
+- **Static files:** served by WhiteNoise (already in `MIDDLEWARE`). Run
+  `python manage.py collectstatic --noinput` as part of build, or include it in
+  the release command before `migrate`.
+
+### 13.2 Required environment variables on Railway (backend service)
+
+| Variable | Value | Source |
+|---|---|---|
+| `DJANGO_SETTINGS_MODULE` | `config.settings.prod` | manual |
+| `DJANGO_SECRET_KEY` | a freshly generated 50-char random string | `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"` |
+| `ALLOWED_HOSTS` | the Railway-provided backend domain (e.g. `trip-eld-api.up.railway.app`) | Railway dashboard |
+| `CORS_ALLOWED_ORIGINS` | the deployed Vercel origin (e.g. `https://trip-eld.vercel.app`) | Vercel dashboard |
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` reference | auto-injected by Railway when Postgres is linked |
+| `ORS_API_KEY` | OpenRouteService API key | openrouteservice.org |
+| `ORS_TIMEOUT_SECONDS` | `15` (optional override) | manual |
+
+The Vercel frontend takes only `VITE_API_BASE_URL`, set to the Railway backend
+domain over HTTPS.
 
 CORS on the backend must explicitly allow the Vercel frontend origin. All secrets
 come from environment variables — never committed.

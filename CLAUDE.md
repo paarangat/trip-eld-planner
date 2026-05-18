@@ -321,9 +321,55 @@ npm run build
 
 ---
 
-## 14. Definition of Done
+## 14. Deployment (Railway + Vercel)
+
+The backend is deployed to **Railway** with a managed Postgres plugin in the
+same project. The frontend is deployed to **Vercel**. These are the operational
+rules for that setup — keep code and configuration aligned with them.
+
+- **Backend service root is `backend/`.** Railway runs from there; do not
+  rearrange the layout in a way that breaks Nixpacks' Django auto-detection.
+- **Start command:** `gunicorn config.wsgi --bind 0.0.0.0:$PORT --log-file -`.
+  Never hard-code a port — Railway injects `$PORT`. `runserver` is dev only and
+  must not be used in production.
+- **Release command** (runs on every deploy, before traffic shifts):
+  `python manage.py migrate --noinput && python manage.py collectstatic --noinput`.
+  Migrations run against prod Postgres here, not in the start command — the new
+  release must not boot if migrations fail.
+- **`DJANGO_SETTINGS_MODULE=config.settings.prod`** in the Railway environment.
+  `prod.py` requires `DJANGO_SECRET_KEY` and `DATABASE_URL` and will refuse to
+  start without them — that is intentional, do not add silent fallbacks.
+- **`DATABASE_URL` is auto-injected** by linking the Postgres plugin (use a
+  Railway variable reference like `${{Postgres.DATABASE_URL}}`, not a copy-pasted
+  literal — the literal goes stale when the plugin rotates credentials).
+- **`ALLOWED_HOSTS`** must include the Railway-provided backend domain (and any
+  custom domain). **`CORS_ALLOWED_ORIGINS`** must include the Vercel frontend
+  origin exactly — scheme and host, no trailing slash. A missing entry surfaces
+  as a silent browser failure that looks like a backend bug.
+- **`ORS_API_KEY` lives only in Railway env vars**, never in the frontend.
+  Never define a `VITE_ORS_*` variable — anything `VITE_*` ends up in the
+  browser bundle and leaks the key.
+- **The Vercel project builds from `frontend/`** and takes one env var:
+  `VITE_API_BASE_URL` pointing at the Railway backend over HTTPS (no trailing
+  slash). Update `CORS_ALLOWED_ORIGINS` on Railway whenever the Vercel domain
+  changes (preview deploys, custom domains).
+- **Postgres is prod-only.** Local dev stays on SQLite (`config.settings.dev`).
+  Do not introduce a Postgres dependency for local development.
+- **No `.env` files in deployed environments.** All variables are configured in
+  the Railway and Vercel dashboards. `python-dotenv` only loads `.env` if the
+  file exists; the deployed services do not ship one.
+- **A failed deploy must not corrupt prod data.** Because the release command
+  runs migrations before the swap, a broken migration aborts the release and
+  leaves the previous version serving traffic. Keep migrations forward-only and
+  backwards-compatible with the previous release for one deploy cycle (add
+  columns nullable first, backfill, then tighten — do not drop or rename in the
+  same release that depends on the change).
+
+---
+
+## 15. Definition of Done
 
 A change is done when: it follows the organization in `ARCHITECTURE.md`, obeys
 the HOS correctness rules in section 7, avoids the pitfalls in section 8, has
-tests where section 10 calls for them, passes the section 9 checklist, and leaves
-the app deployable.
+tests where section 10 calls for them, passes the section 9 checklist, follows
+the deployment rules in section 14, and leaves the app deployable.
