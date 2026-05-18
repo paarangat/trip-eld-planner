@@ -21,12 +21,15 @@ export class ApiError extends Error {
 async function request(path, options = {}) {
   const { signal, ...rest } = options;
   const response = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...(rest.headers ?? {}) },
     ...rest,
+    headers: { "Content-Type": "application/json", ...(rest.headers ?? {}) },
     signal,
   });
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
+    const body = await response.json().catch((err) => {
+      if (err.name === "AbortError") throw err;
+      return {};
+    });
     const message = body?.error?.message ?? response.statusText;
     throw new ApiError(message || `Request failed: ${response.status}`, {
       status: response.status,
@@ -35,7 +38,8 @@ async function request(path, options = {}) {
   }
   try {
     return await response.json();
-  } catch {
+  } catch (err) {
+    if (err.name === "AbortError") throw err;
     throw new ApiError("Malformed response from server", {
       status: response.status,
       body: {},
