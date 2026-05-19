@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import Badge from "../../components/Badge/Badge.jsx";
 import Button from "../../components/Button/Button.jsx";
 import CalendarMonth from "../../components/CalendarMonth/CalendarMonth.jsx";
 import Card from "../../components/Card/Card.jsx";
@@ -15,8 +16,10 @@ import styles from "./DailyLogs.module.css";
 export default function DailyLogs() {
   const { ids } = useRecentTrips();
   const [trips, setTrips] = useState([]);
+  const [failedIds, setFailedIds] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openLog, setOpenLog] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -31,23 +34,35 @@ export default function DailyLogs() {
   useEffect(() => {
     if (ids.length === 0) {
       setTrips([]);
+      setFailedIds([]);
       setLoading(false);
       return undefined;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     Promise.all(
-      ids.map((id) => getTrip(id).catch(() => null)),
-    ).then((results) => {
-      if (!cancelled) {
-        setTrips(results.filter(Boolean));
+      ids.map((id) =>
+        getTrip(id, { signal: controller.signal }).catch((err) => {
+          if (err.name === "AbortError") throw err;
+          return { id, __failed: true };
+        }),
+      ),
+    )
+      .then((results) => {
+        const loaded = results.filter((r) => !r.__failed);
+        const failed = results.filter((r) => r.__failed === true);
+        setTrips(loaded);
+        setFailedIds(failed.map((f) => f.id));
         setLoading(false);
-      }
-    });
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        setLoading(false);
+      });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [ids]);
+  }, [ids, reloadKey]);
 
   const logsByDate = useMemo(() => {
     const m = new Map();
@@ -91,18 +106,42 @@ export default function DailyLogs() {
         title="Daily logs"
         description="Every FMCSA daily log generated from your trips."
         actions={
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={() => window.print()}
-            disabled={noLogs}
-          >
-            Print month
-          </Button>
+          <span data-print-hide>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => window.print()}
+              disabled={noLogs}
+            >
+              Print month
+            </Button>
+          </span>
         }
       />
 
-      <div className={styles.toolbar}>
+      {failedIds.length > 0 ? (
+        <Card data-print-hide>
+          <div className={styles.failBanner}>
+            <Badge tone="warn" dot>
+              Some trips failed to load
+            </Badge>
+            <span className={styles.failMessage}>
+              {failedIds.length} of your recent trips couldn't be loaded — their
+              logs are missing from this calendar. Check your connection and
+              refresh.
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setReloadKey((k) => k + 1)}
+            >
+              Retry
+            </Button>
+          </div>
+        </Card>
+      ) : null}
+
+      <div className={styles.toolbar} data-print-hide>
         <button
           type="button"
           className={styles.navBtn}

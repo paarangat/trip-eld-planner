@@ -32,3 +32,18 @@
 .todayBtn {
   margin-left: auto;
 }
+
+.failBanner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.failMessage {
+  flex: 1;
+  min-width: 200px;
+  color: var(--text-muted);
+}
