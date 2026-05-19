@@ -1,11 +1,13 @@
 // One FMCSA daily log, drawn as SVG. Renders from a DailyLog payload — the
 // 24-hour grid, 4 duty-status rows, the continuous step line, totals, and remarks.
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import styles from "./LogSheet.module.css";
 
 const ROWS = ["off_duty", "sleeper_berth", "driving", "on_duty"];
+const KNOWN_STATUSES = new Set(ROWS);
+const MINUTES_PER_DAY = 24 * 60;
 const ROW_LABELS = {
   off_duty: "OFF",
   sleeper_berth: "SB",
@@ -48,6 +50,46 @@ export default function LogSheet({ log, dayNumber, homeTerminalTimezone }) {
     }
     return minutes;
   }, [segments]);
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      if (!log) return;
+      const date = log.date;
+      const totals = log.totals ?? {};
+      const sum =
+        (totals.off_duty_minutes ?? 0) +
+        (totals.sleeper_minutes ?? 0) +
+        (totals.driving_minutes ?? 0) +
+        (totals.on_duty_minutes ?? 0);
+      if (sum !== MINUTES_PER_DAY) {
+        console.warn(
+          `LogSheet[${date}]: duty totals sum to ${sum} minutes, expected ${MINUTES_PER_DAY}`,
+        );
+      }
+      const ordered = [...segments].sort(
+        (a, b) => a.start_minute_of_day - b.start_minute_of_day,
+      );
+      for (let i = 1; i < ordered.length; i++) {
+        const prev = ordered[i - 1];
+        const curr = ordered[i];
+        if (curr.start_minute_of_day !== prev.end_minute_of_day) {
+          console.warn(
+            `LogSheet[${date}]: segments not contiguous between ` +
+              `[${prev.start_minute_of_day},${prev.end_minute_of_day}] and ` +
+              `[${curr.start_minute_of_day},${curr.end_minute_of_day}]`,
+          );
+        }
+      }
+      for (const seg of segments) {
+        if (!KNOWN_STATUSES.has(seg.status)) {
+          console.warn(
+            `LogSheet[${date}]: segment has unknown status "${seg.status}"`,
+          );
+        }
+      }
+    }
+  }, [log, segments]);
+
   if (!log) return null;
 
   return (
@@ -226,15 +268,20 @@ function buildStepPath(segments) {
   const ordered = [...segments].sort(
     (a, b) => a.start_minute_of_day - b.start_minute_of_day
   );
-  const first = ordered[0];
-  let path = `M ${minuteToX(first.start_minute_of_day)},${rowToY(ROWS.indexOf(first.status))} `;
+  let path = "";
+  let needsMove = true;
   for (const seg of ordered) {
     const rowIdx = ROWS.indexOf(seg.status);
-    if (rowIdx < 0) continue;
+    if (rowIdx < 0) {
+      needsMove = true;
+      continue;
+    }
     const x1 = minuteToX(seg.start_minute_of_day);
     const x2 = minuteToX(seg.end_minute_of_day);
     const y = rowToY(rowIdx);
-    path += `L ${x1},${y} L ${x2},${y} `;
+    path += needsMove ? `M ${x1},${y} ` : `L ${x1},${y} `;
+    path += `L ${x2},${y} `;
+    needsMove = false;
   }
   return path.trim();
 }
