@@ -6,6 +6,7 @@ import logging
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
+from django.db import IntegrityError
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -29,6 +30,9 @@ HOME_TERMINAL_TZ = ZoneInfo("America/Chicago")
 
 DEFAULT_TRIP_START_HOUR = 6
 """All trips start at 06:00 home-terminal time on the request date."""
+
+TRIP_CREATE_ATTEMPTS = 3
+"""Retry short-id collisions before surfacing a database failure."""
 
 
 @api_view(["GET"])
@@ -69,13 +73,7 @@ class TripCreateView(APIView):
         )
         daily_logs = build_daily_logs(timeline)
 
-        trip = Trip.objects.create(
-            current_location=inputs["current_location"],
-            pickup_location=inputs["pickup_location"],
-            dropoff_location=inputs["dropoff_location"],
-            current_cycle_hours=inputs["current_cycle_hours"],
-            result={},
-        )
+        trip = _create_trip_record(inputs)
         payload = build_trip_response(
             trip_id=trip.id,
             inputs=inputs,
@@ -123,6 +121,23 @@ def _default_start_datetime() -> datetime:
     if candidate <= now:
         candidate += timedelta(days=1)
     return candidate
+
+
+def _create_trip_record(inputs: dict) -> Trip:
+    for attempt in range(1, TRIP_CREATE_ATTEMPTS + 1):
+        try:
+            return Trip.objects.create(
+                current_location=inputs["current_location"],
+                pickup_location=inputs["pickup_location"],
+                dropoff_location=inputs["dropoff_location"],
+                current_cycle_hours=inputs["current_cycle_hours"],
+                result={},
+            )
+        except IntegrityError:
+            if attempt == TRIP_CREATE_ATTEMPTS:
+                raise
+            logger.warning("trip.id_collision retry=%d", attempt)
+    raise RuntimeError("Trip create retry loop exited unexpectedly")
 
 
 def _error(http_status: int, code: str, message: str) -> Response:

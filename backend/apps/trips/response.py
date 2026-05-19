@@ -11,12 +11,19 @@ from datetime import datetime
 from typing import Any
 
 from apps.eld.models import DailyLog, LogSegment
-from apps.hos.clocks import HOSClocks, compute_clocks
+from apps.hos.clocks import (
+    ClockSnapshot,
+    HOSClocks,
+    compute_clocks_for_logs,
+    compute_timeline_clocks,
+)
+from apps.hos.constants import CYCLE_LIMIT_MINUTES
 from apps.hos.models import DutyStatus, StopKind, Timeline
-from apps.routing.service import Coordinate, RouteLeg, TripRoute
+from apps.routing.service import RouteLeg, RouteStep, TripRoute
 
 
 SECONDS_PER_HOUR = 3600
+MINUTES_PER_HOUR = 60
 
 
 def build_trip_response(
@@ -29,6 +36,10 @@ def build_trip_response(
     start_datetime: datetime,
 ) -> dict[str, Any]:
     home_terminal_timezone = _timezone_name(start_datetime)
+    current_cycle_hours = float(inputs["current_cycle_hours"])
+    snapshots = compute_timeline_clocks(
+        timeline=timeline, current_cycle_hours=current_cycle_hours
+    )
     return {
         "id": trip_id,
         "home_terminal_timezone": home_terminal_timezone,
@@ -36,7 +47,7 @@ def build_trip_response(
             "current_location": inputs["current_location"],
             "pickup_location": inputs["pickup_location"],
             "dropoff_location": inputs["dropoff_location"],
-            "current_cycle_hours": float(inputs["current_cycle_hours"]),
+            "current_cycle_hours": current_cycle_hours,
             "start_datetime": start_datetime.isoformat(),
             "home_terminal_timezone": home_terminal_timezone,
         },
@@ -54,6 +65,13 @@ def build_trip_response(
                 2,
             ),
             "days": len(daily_logs),
+            "trip_start": timeline.segments[0].start.isoformat()
+            if timeline.segments
+            else start_datetime.isoformat(),
+            "trip_end": timeline.segments[-1].end.isoformat()
+            if timeline.segments
+            else start_datetime.isoformat(),
+            "projected_end_cycle_hours": _projected_end_cycle_hours(snapshots),
         },
         "route": {
             "legs": [_serialize_leg(leg) for leg in route.legs],
@@ -67,8 +85,32 @@ def build_trip_response(
         "daily_logs": _serialize_daily_logs(
             daily_logs,
             home_terminal_timezone=home_terminal_timezone,
-            current_cycle_hours=float(inputs["current_cycle_hours"]),
+            current_cycle_hours=current_cycle_hours,
         ),
+        "clock_snapshots": [_serialize_snapshot(snap) for snap in snapshots],
+    }
+
+
+def _projected_end_cycle_hours(snapshots: list[ClockSnapshot]) -> float:
+    """Hours of the 70-hr cycle used at the very end of the trip.
+
+    Used by the frontend to pre-fill ``current_cycle_hours`` on the next trip
+    so the cycle counter is continuous instead of being re-entered manually.
+    """
+    if not snapshots:
+        return 0.0
+    final_cycle_left = snapshots[-1].clocks.cycle_left_minutes
+    used_minutes = max(0, CYCLE_LIMIT_MINUTES - final_cycle_left)
+    return round(used_minutes / MINUTES_PER_HOUR, 2)
+
+
+def _serialize_snapshot(snapshot: ClockSnapshot) -> dict[str, Any]:
+    return {
+        "at": snapshot.at.isoformat(),
+        "drive_left_minutes": snapshot.clocks.drive_left_minutes,
+        "window_left_minutes": snapshot.clocks.window_left_minutes,
+        "break_left_minutes": snapshot.clocks.break_left_minutes,
+        "cycle_left_minutes": snapshot.clocks.cycle_left_minutes,
     }
 
 
@@ -80,25 +122,17 @@ def _serialize_daily_logs(
 ) -> list[dict[str, Any]]:
     """Serialize the per-day logs, attaching the four HOS clocks to each.
 
-    The cycle clock accumulates across days, so we walk the logs in order and
-    feed the running total of (driving + on-duty-not-driving) minutes into
-    ``compute_clocks`` as ``prior_on_duty_plus_drive_minutes``.
+    The clock helper walks logs in order and carries state across midnight, so
+    split 10-hour rests and 34-hour restarts are reflected in the serialized
+    clocks.
     """
-    serialized: list[dict[str, Any]] = []
-    prior_on_duty_plus_drive = 0
-    for log in daily_logs:
-        clocks = compute_clocks(
-            segments=log.segments,
-            prior_on_duty_plus_drive_minutes=prior_on_duty_plus_drive,
-            current_cycle_hours=current_cycle_hours,
-        )
-        serialized.append(
-            _serialize_daily_log(log, home_terminal_timezone, clocks)
-        )
-        prior_on_duty_plus_drive += (
-            log.total_driving_minutes + log.total_on_duty_minutes
-        )
-    return serialized
+    clocks_by_date = compute_clocks_for_logs(
+        daily_logs, current_cycle_hours=current_cycle_hours
+    )
+    return [
+        _serialize_daily_log(log, home_terminal_timezone, clocks_by_date[log.log_date])
+        for log in daily_logs
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -113,6 +147,18 @@ def _serialize_leg(leg: RouteLeg) -> dict[str, Any]:
         "distance_miles": round(leg.distance_miles, 1),
         "duration_hours": round(leg.duration_seconds / SECONDS_PER_HOUR, 2),
         "polyline": [[pt.lat, pt.lng] for pt in leg.polyline],
+        "steps": [_serialize_route_step(step) for step in leg.steps],
+    }
+
+
+def _serialize_route_step(step: RouteStep) -> dict[str, Any]:
+    return {
+        "instruction": step.instruction,
+        "name": step.name,
+        "distance_meters": round(step.distance_meters, 1),
+        "duration_seconds": round(step.duration_seconds),
+        "type": step.type,
+        "way_points": list(step.way_points),
     }
 
 
