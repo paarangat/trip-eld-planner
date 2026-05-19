@@ -1,24 +1,27 @@
 .sheet {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   padding: var(--space-5);
   display: grid;
   gap: var(--space-4);
+  color: var(--text);
+  break-inside: avoid;
 }
 
 .head {
   display: flex;
-  align-items: baseline;
+  align-items: start;
   justify-content: space-between;
   gap: var(--space-4);
   flex-wrap: wrap;
 }
 
-.headLeft {
+.titleBlock {
   display: flex;
   align-items: baseline;
-  gap: var(--space-4);
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .dayNum {
@@ -26,6 +29,14 @@
   font-size: 11px;
   letter-spacing: 0.12em;
   color: var(--text-muted);
+}
+
+.formTitle {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
 }
 
 .date {
@@ -36,8 +47,9 @@
 
 .totals {
   display: grid;
-  grid-template-columns: repeat(5, auto);
-  gap: var(--space-5);
+  grid-template-columns: repeat(6, minmax(48px, auto));
+  gap: var(--space-3);
+  padding: var(--space-2) 0 0;
 }
 
 .totalCell {
@@ -61,6 +73,52 @@
   font-family: var(--font-mono);
 }
 
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--border-strong);
+  border-left: 1px solid var(--border-strong);
+}
+
+.fieldLine {
+  min-width: 0;
+  min-height: 54px;
+  padding: 7px 9px 8px;
+  border-right: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
+  display: grid;
+  align-content: space-between;
+  gap: 5px;
+}
+
+.fieldWide {
+  grid-column: span 2;
+}
+
+.fieldLabel {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.fieldValue {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.fieldValue[data-empty="true"],
+.placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .grid {
   width: 100%;
   height: auto;
@@ -81,11 +139,36 @@
   font-weight: 500;
 }
 
+.gridTotal {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .remarks {
-  border-top: 1px dashed var(--border);
-  padding-top: var(--space-3);
+  border: 1px solid var(--border-strong);
   display: grid;
-  gap: var(--space-2);
+  gap: 0;
+}
+
+.remarksHead {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.remarksRoute {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-top: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
 }
 
 .remarksTitle {
@@ -94,6 +177,14 @@
   text-transform: uppercase;
   color: var(--text-muted);
   font-weight: 500;
+}
+
+.certification {
+  max-width: 280px;
+  align-self: end;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
 }
 
 .remarkList {
@@ -107,11 +198,18 @@
 
 .remarkItem {
   display: grid;
-  grid-template-columns: 70px 1fr;
+  grid-template-columns: 72px 1fr;
   gap: var(--space-3);
+  min-height: 28px;
+  padding: 6px var(--space-3);
+  border-bottom: 1px solid var(--border);
   font-family: var(--font-mono);
   font-size: 13px;
   color: var(--text);
+}
+
+.remarkItem:last-child {
+  border-bottom: 0;
 }
 
 .remarkTime {
@@ -119,9 +217,82 @@
   font-variant-numeric: tabular-nums;
 }
 
+.recap {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.recapTitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.recapGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-top: 1px solid var(--border-strong);
+  border-left: 1px solid var(--border-strong);
+}
+
+.recapGrid .fieldLine {
+  min-height: 50px;
+}
+
 @media (max-width: 640px) {
   .totals {
     grid-template-columns: repeat(3, auto);
     gap: var(--space-3);
+  }
+
+  .fieldGrid,
+  .recapGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fieldWide {
+    grid-column: span 2;
+  }
+
+  .remarksHead {
+    display: grid;
+  }
+
+  .certification {
+    max-width: none;
+    text-align: left;
+  }
+}
+
+@media print {
+  .sheet {
+    background: #fff;
+    border-color: #111;
+    border-radius: 0;
+    color: #111;
+    padding: 12px;
+  }
+
+  .fieldGrid,
+  .recapGrid,
+  .fieldLine,
+  .remarks,
+  .remarksHead,
+  .remarkItem {
+    border-color: #111;
+  }
+
+  .dayNum,
+  .fieldLabel,
+  .totalLabel,
+  .remarksTitle,
+  .recapTitle,
+  .remarkTime,
+  .certification,
+  .fieldValue[data-empty="true"],
+  .placeholder {
+    color: #333;
   }
 }
