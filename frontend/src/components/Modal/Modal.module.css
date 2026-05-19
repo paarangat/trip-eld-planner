@@ -8,10 +8,6 @@
   animation: fade 120ms ease;
 }
 
-[data-theme="dark"] .scrim {
-  background: rgba(0, 0, 0, 0.55);
-}
-
 @keyframes fade {
   from { opacity: 0; }
   to { opacity: 1; }

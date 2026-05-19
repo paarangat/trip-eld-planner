@@ -3,8 +3,6 @@
  * Calm, modern compliance-tool aesthetic. Single accent (emerald), status
  * colors reserved for HOS clocks and compliance badges, soft layered shadows.
  * Designed for a driver glancing at a tablet, mid-trip.
- *
- * Dark theme applies via [data-theme="dark"] on the <html> element.
  */
 
 :root {
@@ -77,42 +75,4 @@
   --container-max: 1280px;
 
   color-scheme: light;
-}
-
-[data-theme="dark"] {
-  --bg: #0b1220;
-  --surface: #111827;
-  --surface-2: #1f2937;
-  --surface-3: #243042;
-  --border: #1f2937;
-  --border-strong: #334155;
-
-  --text: #f1f5f9;
-  --text-muted: #94a3b8;
-  --text-faint: #64748b;
-
-  --primary: #10b981;
-  --primary-hover: #34d399;
-  --primary-soft: rgba(16, 185, 129, 0.18);
-  --on-primary: #04231a;
-
-  --success: #22c55e;
-  --success-soft: rgba(34, 197, 94, 0.16);
-  --warn: #f59e0b;
-  --warn-soft: rgba(245, 158, 11, 0.16);
-  --danger: #ef4444;
-  --danger-soft: rgba(239, 68, 68, 0.16);
-
-  --status-off: #64748b;
-  --status-sleeper: #475569;
-  --status-driving: #3b82f6;
-  --status-onduty: #f59e0b;
-
-  --focus-ring: rgba(16, 185, 129, 0.4);
-
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-2: 0 1px 3px rgba(0, 0, 0, 0.4),
-              0 8px 24px -6px rgba(0, 0, 0, 0.35);
-
-  color-scheme: dark;
 }

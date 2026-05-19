@@ -19,12 +19,6 @@ const TIMEZONES = [
   "Pacific/Honolulu",
 ];
 
-const THEMES = [
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-  { value: "system", label: "Match system" },
-];
-
 export default function Settings() {
   const { settings, update } = useSettings();
   const { ids, clear } = useRecentTrips();
@@ -75,27 +69,6 @@ export default function Settings() {
               onChange={(v) => update({ defaultStartTime: v })}
               helper="Used when planning a trip without an explicit start time."
             />
-          </div>
-        </Card>
-
-        <Card>
-          <h2 className={styles.section}>Theme</h2>
-          <div className={styles.themeRow}>
-            {THEMES.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                className={`${styles.themeBtn} ${settings.theme === t.value ? styles.themeBtnActive : ""}`}
-                onClick={() => update({ theme: t.value })}
-                aria-pressed={settings.theme === t.value}
-              >
-                <span className={styles.themeSwatch} data-theme={t.value} aria-hidden>
-                  <span className={styles.swatchBg} />
-                  <span className={styles.swatchBar} />
-                </span>
-                <span>{t.label}</span>
-              </button>
-            ))}
           </div>
         </Card>
 
