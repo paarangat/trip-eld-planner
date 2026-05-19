@@ -69,6 +69,7 @@
   background: var(--primary);
   color: var(--on-primary);
   border-color: var(--primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), var(--shadow-1);
 }
 .v_primary:hover:not(:disabled) {
   background: var(--primary-hover);

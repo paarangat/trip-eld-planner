@@ -163,7 +163,7 @@ export default function RouteMap({ route, stops = [], places = [] }) {
           />
           <Polyline
             positions={polyline}
-            pathOptions={{ color: "#2563eb", weight: 4, opacity: 0.85 }}
+            pathOptions={{ color: "#047857", weight: 4, opacity: 0.85 }}
           />
           {allMarkers.map((marker, idx) => (
             <Marker

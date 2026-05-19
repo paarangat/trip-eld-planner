@@ -101,7 +101,7 @@ export default function RouteMiniMap({
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <Polyline
           positions={polyline}
-          pathOptions={{ color: "#2563eb", weight: 4, opacity: 0.85 }}
+          pathOptions={{ color: "#047857", weight: 4, opacity: 0.85 }}
         />
         {markers.map((m, i) => (
           <Marker

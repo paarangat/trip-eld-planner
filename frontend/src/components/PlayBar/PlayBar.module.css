@@ -484,7 +484,7 @@
 
 .scrubInput:focus-visible + .nowLine .nowHandle,
 .scrubInput:focus-visible ~ .nowLine .nowHandle {
-  box-shadow: 0 0 0 3px var(--focus-ring, rgba(37, 99, 235, 0.4));
+  box-shadow: 0 0 0 3px var(--focus-ring, rgba(4, 120, 87, 0.4));
 }
 
 /* Day axis under the ribbon — small tracked-out day labels. */
