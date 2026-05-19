@@ -1,0 +1,641 @@
+/* "Ops timeline" simulator UI. Three vertical zones:
+ *   1. controls — play / time / activity / reset / speed
+ *   2. timeline — chip row → duty ribbon → day axis
+ *   3. legend — tiny key for the ribbon colors
+ *
+ * The ribbon is the visual centerpiece. Each segment of the trip is rendered
+ * as a colored band sized to its true duration. Event chips float above with
+ * leader lines pointing to the moment they fire. A dark "now" line scrubs the
+ * whole stack.
+ */
+
+.bar {
+  display: grid;
+  gap: 16px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+}
+
+/* -------------------------------------------------------------------------
+ * Controls strip
+ * ------------------------------------------------------------------------- */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.playBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background: var(--primary);
+  color: var(--on-primary, #fff);
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  min-width: 108px;
+  transition: filter 80ms ease, transform 80ms ease;
+}
+
+.playBtn:hover {
+  filter: brightness(1.08);
+}
+
+.playBtn:active {
+  transform: scale(0.98);
+}
+
+.playBtn[aria-pressed="true"] {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.readout {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 4px;
+  column-gap: 12px;
+  min-width: 0;
+}
+
+.nowTime {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+}
+
+.activity {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.activity[data-tone="driving"] {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 32%, transparent);
+}
+
+.activity[data-tone="on-duty"] {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+}
+
+.activity[data-tone="rest"] {
+  background: color-mix(in srgb, #6366f1 16%, transparent);
+  color: #6366f1;
+  border-color: color-mix(in srgb, #6366f1 32%, transparent);
+}
+
+.activity[data-tone="off-duty"] {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+/* "LIVE" indicator. Pulsing red dot when the simulator is following
+ * wall-clock; clickable "Jump to live" pill when the user has scrubbed
+ * away but the trip is still in-progress. */
+.liveTag,
+.liveJump {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.liveTag {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+}
+
+.liveJump {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-strong);
+  cursor: pointer;
+  transition: color 80ms ease, border-color 80ms ease;
+}
+
+.liveJump:hover {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--danger);
+  flex: none;
+}
+
+.liveTag .liveDot {
+  animation: livePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 55%, transparent);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--danger) 0%, transparent);
+    opacity: 0.55;
+  }
+}
+
+.tail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.resetBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 80ms ease, border-color 80ms ease;
+}
+
+.resetBtn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.resetBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.speeds {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.speed {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 40px;
+}
+
+.speed:hover {
+  color: var(--text);
+}
+
+.speedActive {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-1);
+}
+
+/* -------------------------------------------------------------------------
+ * Timeline — chip row → ribbon → day axis
+ * ------------------------------------------------------------------------- */
+
+.timeline {
+  position: relative;
+  padding: 0;
+}
+
+/* Chip row sits above the ribbon. Chips are positioned at the event's
+ * percent-along-trip; two rows so close-together events don't overprint. */
+.chipRow {
+  position: relative;
+  height: 56px;
+  margin-bottom: 8px;
+}
+
+.chip {
+  position: absolute;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 7px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  white-space: nowrap;
+  z-index: 3;
+  pointer-events: auto;
+  cursor: help;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.chip[data-row="0"] {
+  bottom: 8px;
+}
+
+.chip[data-row="1"] {
+  bottom: 32px;
+}
+
+/* Leader line from chip down to the ribbon below. Length depends on row. */
+.chip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 1px;
+  background: var(--border-strong);
+  transform: translateX(-50%);
+}
+
+.chip[data-row="0"]::after {
+  bottom: -9px;
+  height: 9px;
+}
+
+.chip[data-row="1"]::after {
+  bottom: -33px;
+  height: 33px;
+}
+
+.chipDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+}
+
+.chip[data-kind="pickup"] .chipDot { background: var(--success); }
+.chip[data-kind="dropoff"] .chipDot { background: var(--danger); }
+.chip[data-kind="fuel"] .chipDot { background: var(--warn); }
+.chip[data-kind="break"] .chipDot { background: var(--text-muted); }
+.chip[data-kind="rest"] .chipDot { background: #6366f1; }
+.chip[data-kind="restart"] .chipDot { background: #8b5cf6; }
+
+.chipLabel {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The ribbon itself. Bands fill the entire trip duration. */
+.ribbon {
+  position: relative;
+  height: 44px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.04);
+}
+
+.band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.band[data-kind="driving"] {
+  background: linear-gradient(180deg, var(--primary), color-mix(in srgb, var(--primary) 92%, black));
+  color: var(--on-primary, #fff);
+}
+
+.band[data-kind="on_duty"] {
+  background: linear-gradient(180deg, var(--warn), color-mix(in srgb, var(--warn) 88%, black));
+  color: #1f2937;
+}
+
+.band[data-kind="break"] {
+  background: repeating-linear-gradient(
+    135deg,
+    #94a3b8 0,
+    #94a3b8 6px,
+    #8a98ad 6px,
+    #8a98ad 12px
+  );
+  color: white;
+}
+
+.band[data-kind="rest"] {
+  background: linear-gradient(180deg, #6366f1, #4f46e5);
+  color: white;
+}
+
+.band[data-kind="restart"] {
+  background: linear-gradient(180deg, #8b5cf6, #7c3aed);
+  color: white;
+}
+
+.band[data-kind="off_duty"] {
+  background: repeating-linear-gradient(
+    135deg,
+    #cbd5e1 0,
+    #cbd5e1 6px,
+    #c0cad8 6px,
+    #c0cad8 12px
+  );
+  color: #475569;
+}
+
+.band[data-kind="sleeper"] {
+  background: linear-gradient(180deg, #64748b, #475569);
+  color: white;
+}
+
+.bandLabel {
+  pointer-events: none;
+  padding: 0 6px;
+}
+
+/* Subtle day boundary inside the ribbon — a thin light hairline. */
+.dayBoundary {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* "Now" indicator — vertical line + handle, scrubs the whole timeline. */
+.nowLine {
+  position: absolute;
+  top: -38px;
+  bottom: -28px;
+  width: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.nowLine::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 2px;
+  background: var(--text);
+  border-radius: 1px;
+  opacity: 0.92;
+}
+
+.nowHandle {
+  position: absolute;
+  top: -7px;
+  left: -8px;
+  width: 16px;
+  height: 16px;
+  background: var(--surface);
+  border: 2.5px solid var(--text);
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.22);
+}
+
+/* Invisible range input layered on top of the ribbon for keyboard +
+ * pointer scrubbing. The visible handle is drawn separately above. */
+.scrubInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: ew-resize;
+  opacity: 0;
+  z-index: 5;
+}
+
+.scrubInput::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 100%;
+}
+
+.scrubInput:focus-visible {
+  opacity: 0;
+}
+
+.scrubInput:focus-visible + .nowLine .nowHandle,
+.scrubInput:focus-visible ~ .nowLine .nowHandle {
+  box-shadow: 0 0 0 3px var(--focus-ring, rgba(37, 99, 235, 0.4));
+}
+
+/* Day axis under the ribbon — small tracked-out day labels. */
+.dayAxis {
+  position: relative;
+  height: 22px;
+  margin-top: 10px;
+}
+
+.daySpan {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  border-left: 1px solid var(--border);
+  padding-left: 6px;
+}
+
+.daySpan:first-child {
+  border-left: none;
+}
+
+.dayLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------------
+ * Legend
+ * ------------------------------------------------------------------------- */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  flex: none;
+}
+
+.legendItem[data-kind="driving"] .legendSwatch {
+  background: var(--primary);
+}
+.legendItem[data-kind="on_duty"] .legendSwatch {
+  background: var(--warn);
+}
+.legendItem[data-kind="break"] .legendSwatch {
+  background: repeating-linear-gradient(
+    135deg,
+    #94a3b8 0,
+    #94a3b8 3px,
+    #8a98ad 3px,
+    #8a98ad 6px
+  );
+}
+.legendItem[data-kind="rest"] .legendSwatch {
+  background: #6366f1;
+}
+.legendItem[data-kind="restart"] .legendSwatch {
+  background: #8b5cf6;
+}
+.legendItem[data-kind="off_duty"] .legendSwatch {
+  background: repeating-linear-gradient(
+    135deg,
+    #cbd5e1 0,
+    #cbd5e1 3px,
+    #c0cad8 3px,
+    #c0cad8 6px
+  );
+}
+
+/* -------------------------------------------------------------------------
+ * Compact variant — used on the Dashboard. Slimmer ribbon, no chip row,
+ * no day axis, no legend. Controls strip stays as-is.
+ * ------------------------------------------------------------------------- */
+
+.bar[data-variant="compact"] {
+  padding: 12px 14px;
+  gap: 10px;
+}
+
+.bar[data-variant="compact"] .controls {
+  gap: 10px;
+}
+
+.bar[data-variant="compact"] .playBtn {
+  min-width: 92px;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.bar[data-variant="compact"] .nowTime {
+  font-size: 15px;
+}
+
+.bar[data-variant="compact"] .ribbon[data-variant="compact"] {
+  height: 14px;
+  border-radius: 7px;
+}
+
+.bar[data-variant="compact"] .nowLine {
+  top: -3px;
+  bottom: -3px;
+}
+
+.bar[data-variant="compact"] .nowHandle {
+  top: -5px;
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+  left: -6px;
+}
+
+/* -------------------------------------------------------------------------
+ * Responsive — stack the controls strip on narrow screens
+ * ------------------------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  .controls {
+    gap: 12px;
+  }
+  .tail {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .chipLabel {
+    display: none;
+  }
+  .chip {
+    padding: 4px 4px;
+  }
+}
