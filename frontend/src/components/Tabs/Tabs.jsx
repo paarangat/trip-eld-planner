@@ -2,13 +2,37 @@ import { useId } from "react";
 
 import styles from "./Tabs.module.css";
 
-export default function Tabs({ value, onChange, tabs = [], ariaLabel = "Tabs" }) {
+/**
+ * Horizontal tab list following the WAI-ARIA tabs pattern.
+ *
+ * Each tab button receives `aria-controls="${panelIdPrefix}-{value}"` so screen
+ * readers know which tabpanel the tab governs. Consumers that render their
+ * panels should set the matching `id` (and ideally `role="tabpanel"` plus
+ * `aria-labelledby={tabId}`) on the panel container, using the same
+ * `panelIdPrefix`. When `panelIdPrefix` is omitted, a stable per-instance
+ * prefix is derived from `useId`, which keeps the references internally
+ * consistent even if the consumer hasn't wired up panel ids yet.
+ */
+export default function Tabs({
+  value,
+  onChange,
+  tabs = [],
+  ariaLabel = "Tabs",
+  panelIdPrefix,
+}) {
   const groupId = useId();
+  const panelPrefix = panelIdPrefix ?? `${groupId}-panel`;
   return (
-    <div className={styles.tabs} role="tablist" aria-label={ariaLabel}>
+    <div
+      className={styles.tabs}
+      role="tablist"
+      aria-label={ariaLabel}
+      aria-orientation="horizontal"
+    >
       {tabs.map((tab) => {
         const isActive = tab.value === value;
         const tabId = `${groupId}-${tab.value}`;
+        const panelId = `${panelPrefix}-${tab.value}`;
         return (
           <button
             key={tab.value}
@@ -16,6 +40,7 @@ export default function Tabs({ value, onChange, tabs = [], ariaLabel = "Tabs" })
             type="button"
             role="tab"
             aria-selected={isActive}
+            aria-controls={panelId}
             tabIndex={isActive ? 0 : -1}
             className={`${styles.tab} ${isActive ? styles.active : ""}`}
             onClick={() => onChange?.(tab.value)}

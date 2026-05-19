@@ -29,6 +29,9 @@ export default function AppShell() {
 
   return (
     <div className={styles.shell}>
+      <a href="#main-content" className={styles.skipLink}>
+        Skip to main content
+      </a>
       <Sidebar
         open={navOpen}
         onClose={() => setNavOpen(false)}
@@ -41,7 +44,7 @@ export default function AppShell() {
           breadcrumb={tripDetailMatch ? "Trip history" : null}
           onMenuClick={() => setNavOpen(true)}
         />
-        <main className={styles.content}>
+        <main id="main-content" className={styles.content}>
           <div className={styles.container}>
             <Outlet />
           </div>

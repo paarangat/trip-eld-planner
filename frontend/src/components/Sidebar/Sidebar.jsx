@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 
 import styles from "./Sidebar.module.css";
@@ -12,6 +13,29 @@ const NAV = [
 ];
 
 export default function Sidebar({ open, onClose, driverName, cycleHours }) {
+  const previouslyFocusedRef = useRef(null);
+
+  useEffect(() => {
+    if (open) {
+      previouslyFocusedRef.current = document.activeElement;
+      return undefined;
+    }
+    if (previouslyFocusedRef.current?.focus) {
+      previouslyFocusedRef.current.focus();
+      previouslyFocusedRef.current = null;
+    }
+    return undefined;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   return (
     <>
       {open ? (
