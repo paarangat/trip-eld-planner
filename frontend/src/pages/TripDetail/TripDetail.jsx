@@ -11,7 +11,7 @@ import RouteMap from "../../components/RouteMap/RouteMap.jsx";
 import Skeleton from "../../components/Skeleton/Skeleton.jsx";
 import StatCard from "../../components/StatCard/StatCard.jsx";
 import Tabs from "../../components/Tabs/Tabs.jsx";
-import { getTrip } from "../../api/tripApi.js";
+import { ApiError, getTrip } from "../../api/tripApi.js";
 import styles from "./TripDetail.module.css";
 
 const STOP_LABELS = {
@@ -41,34 +41,31 @@ export default function TripDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("overview");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
     setTrip(null);
     setTab("overview");
-    getTrip(id)
+    getTrip(id, { signal: controller.signal })
       .then((data) => {
-        if (!cancelled) {
-          setTrip(data);
-          setLoading(false);
-        }
+        setTrip(data);
+        setLoading(false);
       })
       .catch((err) => {
-        if (!cancelled) {
-          setError(err);
-          setLoading(false);
-        }
+        if (err.name === "AbortError") return;
+        setError(err);
+        setLoading(false);
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [id]);
+  }, [id, reloadKey]);
 
   const empty = !loading && !trip;
-  const failedResult =
-    trip && (!trip.daily_logs || trip.daily_logs.length === 0);
+  const emptyLogs = trip && (!trip.daily_logs || trip.daily_logs.length === 0);
 
   const inputs = trip?.inputs ?? {};
   const summary = trip?.summary ?? {};
@@ -102,62 +99,32 @@ export default function TripDetail() {
   }
 
   if (error || empty) {
+    const isNotFound = error instanceof ApiError && error.status === 404;
+    const headerTitle = isNotFound ? "Trip not found" : "Couldn't load this trip";
+    const bodyCopy = isNotFound
+      ? "We couldn't find this trip on the server. It may have been deleted."
+      : "We hit an error reaching the server. Try again or check back in a moment.";
     return (
       <>
-        <PageHeader title="Trip not found" eyebrow="Trip detail" />
+        <PageHeader title={headerTitle} eyebrow="Trip detail" />
         <EmptyState
           icon={<MissingIcon />}
           title={`Trip ${id} could not be loaded`}
-          body={
-            error?.message
-              ? error.message
-              : "We couldn't find this trip on the server. It may have been deleted."
-          }
+          body={bodyCopy}
           action={
-            <Button as={Link} to="/trips" variant="secondary">
-              Back to history
-            </Button>
+            <>
+              <Button
+                variant="primary"
+                onClick={() => setReloadKey((k) => k + 1)}
+              >
+                Retry
+              </Button>
+              <Button as={Link} to="/trips" variant="secondary">
+                Back to history
+              </Button>
+            </>
           }
         />
-      </>
-    );
-  }
-
-  if (failedResult) {
-    return (
-      <>
-        <PageHeader
-          title={`${inputs.current_location ?? "?"} → ${inputs.dropoff_location ?? "?"}`}
-          eyebrow={`Trip · ${trip.id}`}
-        />
-        <Card>
-          <div className={styles.failBanner}>
-            <Badge tone="warn" dot>Result unavailable</Badge>
-            <span>
-              This trip didn't produce a complete result. Try replanning with
-              the same inputs.
-            </span>
-          </div>
-          <div className={styles.failActions}>
-            <Button
-              variant="primary"
-              onClick={() =>
-                navigate("/new", {
-                  state: {
-                    replay: {
-                      current_location: inputs.current_location ?? "",
-                      pickup_location: inputs.pickup_location ?? "",
-                      dropoff_location: inputs.dropoff_location ?? "",
-                      current_cycle_hours: inputs.current_cycle_hours ?? 0,
-                    },
-                  },
-                })
-              }
-            >
-              Replan trip
-            </Button>
-          </div>
-        </Card>
       </>
     );
   }
@@ -166,7 +133,7 @@ export default function TripDetail() {
     <>
       <PageHeader
         eyebrow={`Trip · ${trip.id}`}
-        title={`${inputs.current_location} → ${inputs.pickup_location} → ${inputs.dropoff_location}`}
+        title={routeLabel(inputs)}
         description={`Planned ${formatLong(inputs.start_datetime, homeTerminalTimezone)}`}
         actions={
           <>
@@ -199,6 +166,18 @@ export default function TripDetail() {
           </>
         }
       />
+
+      {emptyLogs ? (
+        <Card>
+          <div className={styles.failBanner}>
+            <Badge tone="warn" dot>No daily logs</Badge>
+            <span>
+              This trip didn't produce any daily logs. The route may be
+              incomplete — try replanning with the same inputs.
+            </span>
+          </div>
+        </Card>
+      ) : null}
 
       <div data-print-hide>
         <Tabs value={tab} onChange={setTab} tabs={tabs} ariaLabel="Trip sections" />
@@ -324,6 +303,12 @@ export default function TripDetail() {
       </div>
     </>
   );
+}
+
+function routeLabel({ current_location, pickup_location, dropoff_location } = {}) {
+  const c = current_location || "—";
+  const d = dropoff_location || "—";
+  return pickup_location ? `${c} → ${pickup_location} → ${d}` : `${c} → ${d}`;
 }
 
 function formatLong(iso, timeZone) {
