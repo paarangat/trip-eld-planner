@@ -38,12 +38,14 @@ export default function CalendarMonth({
     () => pickInitialFocus(year, month, today, activeIsos),
     [year, month, today, activeIsos],
   );
-  const [focusedIso, setFocusedIso] = useState(defaultFocusIso);
-
-  // Reset the roving focus target when the visible month changes.
-  useEffect(() => {
-    setFocusedIso(defaultFocusIso);
-  }, [defaultFocusIso]);
+  const monthKey = `${year}-${month}`;
+  const [focusState, setFocusState] = useState({
+    monthKey,
+    iso: defaultFocusIso,
+  });
+  const focusedIso =
+    focusState.monthKey === monthKey ? focusState.iso : defaultFocusIso;
+  const setFocusedIso = (iso) => setFocusState({ monthKey, iso });
 
   const cellRefs = useRef(new Map());
   const pendingFocus = useRef(false);

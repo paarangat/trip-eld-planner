@@ -11,6 +11,10 @@ const DEFAULTS = {
   theme: "system", // "light" | "dark" | "system"
   defaultStartTime: "06:00",
   currentCycleHours: 0,
+  // Set when ``currentCycleHours`` was rolled forward from a prior trip's
+  // projected end. Used by NewTrip to show a "continued from trip X" hint —
+  // and to know to clear it as soon as the user manually adjusts the slider.
+  cycleHoursSource: null, // { tripId: string, endDate: string } | null
 };
 
 function load() {

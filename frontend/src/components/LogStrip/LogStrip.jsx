@@ -10,9 +10,9 @@ const STATUS_COLORS = {
 /**
  * Compact 24-hour duty-status strip — used in calendar cells and trip cards.
  * Renders one filled bar per segment, positioned by minute-of-day on a
- * 0..1440 axis. No grid lines, no labels.
+ * 0..1440 axis. Optional `nowMinute` draws a vertical marker at that point.
  */
-export default function LogStrip({ segments = [], height = 8 }) {
+export default function LogStrip({ segments = [], height = 8, nowMinute = null }) {
   return (
     <svg
       viewBox="0 0 1440 100"
@@ -37,6 +37,16 @@ export default function LogStrip({ segments = [], height = 8 }) {
           />
         );
       })}
+      {Number.isFinite(nowMinute) ? (
+        <rect
+          x={Math.max(0, Math.min(1438, nowMinute - 2))}
+          y={0}
+          width={4}
+          height={100}
+          fill="var(--text)"
+          opacity={0.9}
+        />
+      ) : null}
     </svg>
   );
 }

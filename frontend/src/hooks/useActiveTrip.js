@@ -33,16 +33,18 @@ export function useActiveTrip(timeZone = "America/Chicago") {
 
   useEffect(() => {
     if (!mostRecentId) {
-      setTrip(null);
-      setLoading(false);
-      setError(null);
       return undefined;
     }
     const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-    getTrip(mostRecentId, { signal: controller.signal })
+    Promise.resolve()
+      .then(() => {
+        if (controller.signal.aborted) return null;
+        setLoading(true);
+        setError(null);
+        return getTrip(mostRecentId, { signal: controller.signal });
+      })
       .then((data) => {
+        if (!data) return;
         if (controller.signal.aborted) return;
         setTrip(data);
         setLoading(false);
@@ -58,11 +60,20 @@ export function useActiveTrip(timeZone = "America/Chicago") {
     };
   }, [mostRecentId]);
 
+  const currentTrip = trip?.id === mostRecentId ? trip : null;
   const today = todayIso(timeZone);
-  const isActive = isTripActive(trip, today);
-  const todayLog = trip ? trip.daily_logs?.find((l) => l.date === today) : null;
+  const isActive = isTripActive(currentTrip, today);
+  const todayLog = currentTrip
+    ? currentTrip.daily_logs?.find((l) => l.date === today)
+    : null;
 
-  return { trip, isActive, todayLog, loading, error };
+  return {
+    trip: currentTrip,
+    isActive,
+    todayLog,
+    loading: mostRecentId ? loading || (!currentTrip && !error) : false,
+    error: mostRecentId ? error : null,
+  };
 }
 
 function isTripActive(trip, today) {
