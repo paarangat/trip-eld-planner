@@ -5,6 +5,7 @@ import Badge from "../../components/Badge/Badge.jsx";
 import Button from "../../components/Button/Button.jsx";
 import Card from "../../components/Card/Card.jsx";
 import EmptyState from "../../components/EmptyState/EmptyState.jsx";
+import Modal from "../../components/Modal/Modal.jsx";
 import PageHeader from "../../components/PageHeader/PageHeader.jsx";
 import SearchInput from "../../components/SearchInput/SearchInput.jsx";
 import Skeleton from "../../components/Skeleton/Skeleton.jsx";
@@ -27,6 +28,7 @@ export default function TripHistory() {
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [clearOpen, setClearOpen] = useState(false);
 
   useEffect(() => {
     if (ids.length === 0) {
@@ -142,9 +144,7 @@ export default function TripHistory() {
               <Button
                 variant="ghost"
                 size="md"
-                onClick={() => {
-                  if (window.confirm("Clear all trip history from this device?")) clear();
-                }}
+                onClick={() => setClearOpen(true)}
               >
                 Clear all
               </Button>
@@ -267,6 +267,34 @@ export default function TripHistory() {
         <code className={styles.code}>GET /api/trips/</code> would replace the
         localStorage cache.
       </p>
+
+      <Modal
+        open={clearOpen}
+        onClose={() => setClearOpen(false)}
+        title="Clear all trip history?"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setClearOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                clear();
+                setClearOpen(false);
+              }}
+            >
+              Clear history
+            </Button>
+          </>
+        }
+      >
+        <p>
+          This removes all {total} trips from this device. The trips themselves
+          remain on the server and can be reloaded by ID, but they won't appear
+          in this list anymore.
+        </p>
+      </Modal>
     </>
   );
 }
