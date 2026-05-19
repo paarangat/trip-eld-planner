@@ -11,6 +11,60 @@
   margin: 0 0 var(--space-3);
 }
 
+.nowHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.nowHead .eyebrow {
+  margin: 0;
+}
+
+.nowActivity {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.nowActivity[data-tone="driving"] {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 32%, transparent);
+}
+
+.nowActivity[data-tone="on-duty"] {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+}
+
+.nowActivity[data-tone="rest"] {
+  background: color-mix(in srgb, #6366f1 16%, transparent);
+  color: #6366f1;
+  border-color: color-mix(in srgb, #6366f1 32%, transparent);
+}
+
+.nowActivity[data-tone="off-duty"] {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.nowSim {
+  margin-bottom: var(--space-3);
+}
+
 .rulesGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

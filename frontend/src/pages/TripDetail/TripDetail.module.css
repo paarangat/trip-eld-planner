@@ -25,6 +25,185 @@
   display: grid;
 }
 
+.routeView {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 1040px) {
+  .routeView {
+    grid-template-columns: 1fr;
+  }
+}
+
+.directionsPanel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+
+.directionsHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.directionsTitle {
+  margin: 2px 0 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.directionsCount {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.legDirections {
+  display: grid;
+}
+
+.routeLeg {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.routeLeg:last-child {
+  border-bottom: none;
+}
+
+.legHead {
+  display: grid;
+  gap: 4px;
+  margin-bottom: var(--space-4);
+}
+
+.legHead h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.legHead span {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.stepList {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stepItem {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.stepIndex {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.stepBody {
+  min-width: 0;
+}
+
+.stepInstruction {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.stepMeta {
+  display: inline-block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.noDirections {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.simBar {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.simGauges {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+@media (max-width: 720px) {
+  .simGauges {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.simHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2, 8px);
+}
+
+.simTitle {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.simHelp {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+
+.simHelp strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
 .summaryRow {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

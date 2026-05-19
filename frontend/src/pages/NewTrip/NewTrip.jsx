@@ -8,7 +8,7 @@ import ErrorBanner from "../../components/common/ErrorBanner.jsx";
 import PageHeader from "../../components/PageHeader/PageHeader.jsx";
 import Slider from "../../components/Slider/Slider.jsx";
 import TextField from "../../components/TextField/TextField.jsx";
-import { useToast } from "../../components/Toast/Toast.jsx";
+import { useToast } from "../../components/Toast/useToast.js";
 import { useLocationHistory } from "../../hooks/useLocationHistory.js";
 import { useRecentTrips } from "../../hooks/useRecentTrips.js";
 import { useSettings } from "../../hooks/useSettings.js";
@@ -64,18 +64,33 @@ export default function NewTrip() {
   );
 
   const cycleInvalid = !cycleHoursResult.ok;
-  const cycleBlocked = !cycleInvalid && cycleHours >= MAX_CYCLE;
-
   const allFilled =
     form.current_location.trim() &&
     form.pickup_location.trim() &&
     form.dropoff_location.trim();
 
   const canSubmit =
-    !loading && allFilled && online && !cycleInvalid && !cycleBlocked;
+    !loading && allFilled && online && !cycleInvalid;
+
+  // Show "continued from prior trip" only while the slider still matches the
+  // value that was rolled forward; once the user adjusts it, we get out of
+  // the way (and clear the source so it doesn't reappear).
+  const carryover =
+    !presets &&
+    settings.cycleHoursSource &&
+    Math.abs(cycleHours - (settings.currentCycleHours ?? 0)) < 0.01
+      ? settings.cycleHoursSource
+      : null;
 
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    if (field === "current_cycle_hours" && settings.cycleHoursSource) {
+      update({ cycleHoursSource: null });
+    }
+  }
+
+  function dismissCarryover() {
+    update({ cycleHoursSource: null });
   }
 
   async function submit(e) {
@@ -91,7 +106,22 @@ export default function NewTrip() {
       const result = await planTrip(payload);
       remember(payload.current_location, payload.pickup_location, payload.dropoff_location);
       rememberTripId(result.id);
-      update({ currentCycleHours: payload.current_cycle_hours });
+      // Roll the cycle counter forward: next trip should start from where
+      // this one *projects* to end, not from what the user just typed in.
+      const projectedEnd = Number(result.summary?.projected_end_cycle_hours);
+      const nextCycleHours = Number.isFinite(projectedEnd)
+        ? clampCycleHours(projectedEnd)
+        : payload.current_cycle_hours;
+      update({
+        currentCycleHours: nextCycleHours,
+        cycleHoursSource: Number.isFinite(projectedEnd)
+          ? {
+              tripId: result.id,
+              endDate: result.daily_logs?.[result.daily_logs.length - 1]?.date ?? null,
+              priorCycleHours: payload.current_cycle_hours,
+            }
+          : null,
+      });
       toast.push({
         tone: "success",
         message: `Trip ${result.id} planned — ${Math.round(result.summary?.total_miles ?? 0)} mi, ${result.summary?.days ?? "?"} day(s)`,
@@ -160,7 +190,7 @@ export default function NewTrip() {
 
           <hr className={styles.divider} />
 
-          <Step number={2} title="How much have you driven this week?" />
+          <Step number={2} title="How much cycle time is already used?" />
 
           <div className={styles.sliderBox}>
             <Slider
@@ -182,15 +212,29 @@ export default function NewTrip() {
             of cycle time left before a 34-hr restart.
           </p>
 
+          {carryover ? (
+            <div className={styles.carryover} role="status">
+              <Badge tone="primary" dot>Carried over</Badge>
+              <span>
+                Continued from trip <strong>{carryover.tripId}</strong>
+                {carryover.endDate ? <> ending <strong>{carryover.endDate}</strong></> : null}
+                . Adjust the slider if you've taken time off since.
+              </span>
+              <button
+                type="button"
+                className={styles.carryoverDismiss}
+                onClick={dismissCarryover}
+                aria-label="Dismiss continuation hint"
+              >
+                ×
+              </button>
+            </div>
+          ) : null}
+
           {cycleInvalid ? (
             <div className={styles.blocker} role="alert">
               <Badge tone="danger" dot>Invalid hours</Badge>
               <span>Enter cycle hours between 0 and 70 before planning.</span>
-            </div>
-          ) : cycleBlocked ? (
-            <div className={styles.blocker} role="alert">
-              <Badge tone="danger" dot>Cycle exhausted</Badge>
-              <span>Take a 34-hour restart before planning a new trip.</span>
             </div>
           ) : null}
 
@@ -229,6 +273,13 @@ function Step({ number, title }) {
 function initialCycleHours(value) {
   const parsed = parseCycleHours(value);
   return parsed.ok ? parsed.value : 0;
+}
+
+function clampCycleHours(value) {
+  if (!Number.isFinite(value)) return 0;
+  if (value < 0) return 0;
+  if (value > MAX_CYCLE) return MAX_CYCLE;
+  return value;
 }
 
 function parseCycleHours(value) {

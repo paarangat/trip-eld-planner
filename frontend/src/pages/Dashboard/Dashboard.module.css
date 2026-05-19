@@ -111,6 +111,11 @@
   font-weight: 600;
 }
 
+.activeSim {
+  /* Embedded compact PlayBar — sits between the heading and the stats grid. */
+  margin: 0;
+}
+
 .activeStats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

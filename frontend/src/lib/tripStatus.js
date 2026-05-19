@@ -4,20 +4,34 @@
 // in the trip's home-terminal timezone.
 //
 //   in_progress — today falls inside the trip's date range.
+//   upcoming    — the first log date is still in the future.
 //   compliant   — the last log date is in the past (trip finished cleanly).
 //   failed      — fetch failed, daily logs are empty, or the result is incomplete.
+//
+// A driver may also pin a status manually (e.g. mark a planned trip as
+// "in progress" before the start date). When an override is present it wins;
+// passing ``null`` falls back to the derived value.
 
 const STATUSES = {
+  UPCOMING: "upcoming",
   IN_PROGRESS: "in_progress",
   COMPLIANT: "compliant",
   FAILED: "failed",
 };
 
 const STATUS_LABEL = {
+  upcoming: "Upcoming",
   in_progress: "In progress",
   compliant: "Compliant",
   failed: "Failed",
 };
+
+export const MANUAL_STATUS_OPTIONS = [
+  { value: STATUSES.UPCOMING, label: "Upcoming" },
+  { value: STATUSES.IN_PROGRESS, label: "In progress" },
+  { value: STATUSES.COMPLIANT, label: "Compliant" },
+  { value: STATUSES.FAILED, label: "Failed" },
+];
 
 function todayIsoInTimezone(timeZone) {
   try {
@@ -35,7 +49,7 @@ function todayIsoInTimezone(timeZone) {
   }
 }
 
-export function tripStatus(trip) {
+function derivedTripStatus(trip) {
   if (!trip || trip.__failed) return STATUSES.FAILED;
   const logs = trip.daily_logs ?? [];
   if (logs.length === 0) return STATUSES.FAILED;
@@ -45,9 +59,20 @@ export function tripStatus(trip) {
   const firstDate = logs[0].date;
   const lastDate = logs[logs.length - 1].date;
 
-  if (today < firstDate) return STATUSES.IN_PROGRESS;
+  if (today < firstDate) return STATUSES.UPCOMING;
   if (today <= lastDate) return STATUSES.IN_PROGRESS;
   return STATUSES.COMPLIANT;
+}
+
+export function tripStatus(trip, override = null) {
+  if (override && Object.values(STATUSES).includes(override)) {
+    return override;
+  }
+  return derivedTripStatus(trip);
+}
+
+export function tripStatusDerived(trip) {
+  return derivedTripStatus(trip);
 }
 
 export function tripStatusLabel(status) {

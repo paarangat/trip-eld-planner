@@ -1,8 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ToastContext } from "./ToastContext.js";
 import styles from "./Toast.module.css";
-
-const ToastContext = createContext(null);
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
@@ -109,13 +108,4 @@ export function ToastProvider({ children }) {
       </div>
     </ToastContext.Provider>
   );
-}
-
-export function useToast() {
-  const ctx = useContext(ToastContext);
-  if (!ctx) {
-    // graceful no-op when used outside provider
-    return { push: () => {}, remove: () => {} };
-  }
-  return ctx;
 }

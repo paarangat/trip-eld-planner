@@ -67,6 +67,37 @@
   font-weight: 600;
 }
 
+.carryover {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--primary-soft, var(--surface-2));
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.carryover strong {
+  font-weight: 600;
+}
+
+.carryoverDismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.carryoverDismiss:hover {
+  color: var(--text);
+}
+
 .blocker {
   display: flex;
   align-items: center;

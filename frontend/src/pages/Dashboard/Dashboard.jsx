@@ -9,12 +9,18 @@ import EmptyState from "../../components/EmptyState/EmptyState.jsx";
 import ErrorBanner from "../../components/common/ErrorBanner.jsx";
 import LogStrip from "../../components/LogStrip/LogStrip.jsx";
 import PageHeader from "../../components/PageHeader/PageHeader.jsx";
+import PlayBar from "../../components/PlayBar/PlayBar.jsx";
 import RouteMiniMap from "../../components/RouteMiniMap/RouteMiniMap.jsx";
 import Skeleton from "../../components/Skeleton/Skeleton.jsx";
 import { getTrip } from "../../api/tripApi.js";
+import {
+  useSimulatedClocks,
+  useSimulation,
+} from "../../contexts/SimulationContext.jsx";
 import { useActiveTrip } from "../../hooks/useActiveTrip.js";
 import { useRecentTrips } from "../../hooks/useRecentTrips.js";
 import { useSettings } from "../../hooks/useSettings.js";
+import { useTripStatusOverrides } from "../../hooks/useTripStatusOverrides.js";
 import { useCycleHours } from "../../hooks/useCycleHours.js";
 import { HOS_LIMITS } from "../../lib/hosLimits.js";
 import {
@@ -26,35 +32,138 @@ import { TRIP_STATUS, tripStatus } from "../../lib/tripStatus.js";
 import styles from "./Dashboard.module.css";
 
 export default function Dashboard() {
-  const { settings } = useSettings();
+  const { settings, update: updateSettings } = useSettings();
   const cycleHours = useCycleHours(settings);
+  const { ids: recentTripIds } = useRecentTrips();
+  const { overrides: statusOverrides } = useTripStatusOverrides();
   const { trip, todayLog, loading, error: activeTripError } = useActiveTrip(
     settings.timezone,
   );
+
+  // Self-heal a stale carryover: the cycle counter is rolled forward from past
+  // trips, so an empty trip list means the counter has nothing left to back it.
+  // Reset to a pristine 0:00 so the dashboard, the NewTrip slider, and the
+  // gauge all agree.
+  useEffect(() => {
+    if (recentTripIds.length === 0 && (cycleHours > 0 || settings.cycleHoursSource)) {
+      updateSettings({ currentCycleHours: 0, cycleHoursSource: null });
+    }
+  }, [recentTripIds.length, cycleHours, settings.cycleHoursSource, updateSettings]);
 
   // Backend attaches the four remaining-time clocks to each daily log. When
   // there's no active trip / no log for today, the trip-dependent clocks render
   // as idle ("—") and the cycle clock falls back to the driver's starting
   // state from settings.
-  const status = trip ? tripStatus(trip) : null;
+  const status = trip
+    ? tripStatus(trip, statusOverrides[trip.id] ?? null)
+    : null;
   const isInProgress = status === TRIP_STATUS.IN_PROGRESS;
-  const activeLog = isInProgress ? todayLog : null;
-  const backendClocks = activeLog?.hos_clocks ?? {};
-  const fallbackCycleLeft = Math.max(0, HOS_LIMITS.CYCLE - (cycleHours ?? 0) * 60);
-  const clocks = {
-    driveLeft: backendClocks.drive_left_minutes ?? null,
-    windowLeft: backendClocks.window_left_minutes ?? null,
-    breakLeft: backendClocks.break_left_minutes ?? null,
-    cycleLeft: backendClocks.cycle_left_minutes ?? fallbackCycleLeft,
-  };
+  const isUpcoming = status === TRIP_STATUS.UPCOMING;
 
-  const progress = useMemo(() => (trip ? tripProgress(trip) : null), [trip]);
+  // Hand the active (or upcoming) trip to the global simulator so the
+  // Dashboard gauges, the PlayBar, and the Trip Detail page all read from
+  // one source. For in-progress trips the simulator auto-defaults to "live"
+  // (simulationNow follows wall-clock); for upcoming trips it parks at the
+  // trip start so the user can scrub or hit Play to preview.
+  const {
+    loadTrip: loadIntoSimulator,
+    hasTrip: simulatorHasTrip,
+    simulationNow,
+  } = useSimulation();
+  const simulatedClocks = useSimulatedClocks();
+  useEffect(() => {
+    if (trip && (isInProgress || isUpcoming)) {
+      loadIntoSimulator(trip);
+    }
+  }, [trip, isInProgress, isUpcoming, loadIntoSimulator]);
+
+  // Prefer simulated clocks any time the simulator has the trip loaded.
+  // For in-progress trips this is live wall-clock state; for upcoming it
+  // updates as the user scrubs/plays the preview.
+  const useSimulated =
+    (isInProgress || isUpcoming) && simulatorHasTrip && simulatedClocks;
+  const backendClocks = (isInProgress ? todayLog : null)?.hos_clocks ?? {};
+  const fallbackCycleLeft = Math.max(0, HOS_LIMITS.CYCLE - (cycleHours ?? 0) * 60);
+  const clocks = useSimulated
+    ? {
+        driveLeft: simulatedClocks.drive_left_minutes,
+        windowLeft: simulatedClocks.window_left_minutes,
+        breakLeft: simulatedClocks.break_left_minutes,
+        cycleLeft: simulatedClocks.cycle_left_minutes,
+      }
+    : {
+        driveLeft: backendClocks.drive_left_minutes ?? null,
+        windowLeft: backendClocks.window_left_minutes ?? null,
+        breakLeft: backendClocks.break_left_minutes ?? null,
+        cycleLeft: backendClocks.cycle_left_minutes ?? fallbackCycleLeft,
+      };
+
+  const tz =
+    trip?.home_terminal_timezone ?? settings.timezone ?? "America/Chicago";
+
+  // Bind the progress snapshot to simulationNow so distance/drive-time/next-stop
+  // update as the user scrubs the play bar. Falls back to real wall-clock when
+  // no trip is loaded into the simulator.
+  const progress = useMemo(() => {
+    if (!trip) return null;
+    const now =
+      simulatorHasTrip && simulationNow != null
+        ? new Date(simulationNow)
+        : new Date();
+    return tripProgress(trip, { now });
+  }, [trip, simulatorHasTrip, simulationNow]);
+
+  // "Today's log" panel: when the simulator is loaded, follow the day that
+  // simulationNow lands in (which may be a future day for upcoming trips, or
+  // past/future days the user has scrubbed to). Otherwise show today's real
+  // log if a trip is in-progress, else nothing.
+  const simulatedDate = useMemo(
+    () =>
+      simulatorHasTrip && simulationNow != null
+        ? isoDateInZone(simulationNow, tz)
+        : null,
+    [simulatorHasTrip, simulationNow, tz],
+  );
+  const simulatedDayLog = useMemo(() => {
+    if (!simulatedDate || !trip) return null;
+    return (trip.daily_logs ?? []).find((log) => log.date === simulatedDate) ?? null;
+  }, [simulatedDate, trip]);
+  const displayLog = simulatedDayLog ?? todayLog;
+  // Partial driving minutes within the displayed day, clipped to simulationNow.
+  const displayedDriveMinutes = useMemo(() => {
+    if (!displayLog) return null;
+    if (!simulatorHasTrip || simulationNow == null) {
+      return displayLog.totals?.driving_minutes ?? 0;
+    }
+    let total = 0;
+    for (const seg of displayLog.segments ?? []) {
+      if (seg.status !== "driving") continue;
+      const start = new Date(seg.start).getTime();
+      const end = new Date(seg.end).getTime();
+      if (end <= simulationNow) {
+        total += Math.max(0, Math.round((end - start) / 60000));
+      } else if (start <= simulationNow) {
+        total += Math.max(0, Math.round((simulationNow - start) / 60000));
+        break;
+      } else {
+        break;
+      }
+    }
+    return total;
+  }, [displayLog, simulationNow, simulatorHasTrip]);
+  // Minute-of-day for the "now" marker on the day strip; null if simulationNow
+  // falls outside the displayed day.
+  const nowMinute = useMemo(() => {
+    if (!displayLog || !simulatorHasTrip || simulationNow == null) return null;
+    const simIso = isoDateInZone(simulationNow, tz);
+    if (simIso !== displayLog.date) return null;
+    return minuteOfDayInZone(simulationNow, tz);
+  }, [displayLog, simulationNow, simulatorHasTrip, tz]);
 
   const [refreshKey, setRefreshKey] = useState(0);
   const recentTrips = useRecentList(5, refreshKey);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
-  const tz = trip?.home_terminal_timezone ?? settings.timezone ?? "America/Chicago";
   const updatedAt = useMemo(
     () => formatClock(new Date(), tz),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,6 +173,8 @@ export default function Dashboard() {
 
   const subtitle = isInProgress && progress?.percent != null
     ? `You're ${progress.percent}% through your current trip.`
+    : isUpcoming
+      ? "Your next trip is planned but has not started yet."
     : trip
       ? "No trip in progress. Plan a new one to start the clocks."
       : "Plan your first trip to see live HOS clocks and a routed map.";
@@ -145,8 +256,13 @@ export default function Dashboard() {
               <Skeleton width="100%" height={260} radius={8} />
             </div>
           </Card>
-        ) : isInProgress && trip ? (
-          <ActiveTripCard trip={trip} progress={progress} timeZone={tz} />
+        ) : (isInProgress || isUpcoming) && trip ? (
+          <ActiveTripCard
+            trip={trip}
+            progress={progress}
+            timeZone={tz}
+            isInProgress={isInProgress}
+          />
         ) : activeTripError ? (
           <Card padded={false}>
             <EmptyState
@@ -224,23 +340,35 @@ export default function Dashboard() {
 
         <div className={styles.todayLog}>
           <div className={styles.sectionHead}>
-            <h2 className={styles.recentTitle}>Today's log</h2>
+            <h2 className={styles.recentTitle}>
+              {simulatedDayLog && simulatedDate !== todayIso(tz)
+                ? "Day in view"
+                : "Today's log"}
+            </h2>
             <span className={styles.todayDate}>
-              {todayLog
-                ? formatLogDate(todayLog.date)
-                : formatLogDate(todayIso(tz))}
+              {displayLog
+                ? formatLogDate(displayLog.date)
+                : formatLogDate(simulatedDate ?? todayIso(tz))}
             </span>
           </div>
           <Card>
             <div className={styles.todayBody}>
-              <span className={styles.todaySubLabel}>Driving so far</span>
+              <span className={styles.todaySubLabel}>
+                {simulatorHasTrip && simulationNow != null
+                  ? "Driving so far"
+                  : "Driving planned"}
+              </span>
               <span className={`${styles.todayBig} mono tabular`}>
-                {todayLog
-                  ? formatHM(todayLog.totals?.driving_minutes ?? 0)
+                {displayedDriveMinutes != null
+                  ? formatHM(displayedDriveMinutes)
                   : "00:00"}
               </span>
               <div className={styles.todayStrip}>
-                <LogStrip segments={todayLog?.segments ?? []} height={28} />
+                <LogStrip
+                  segments={displayLog?.segments ?? []}
+                  height={28}
+                  nowMinute={nowMinute}
+                />
                 <div className={styles.todayAxis}>
                   <span>00</span>
                   <span>06</span>
@@ -260,7 +388,7 @@ export default function Dashboard() {
   );
 }
 
-function ActiveTripCard({ trip, progress, timeZone }) {
+function ActiveTripCard({ trip, progress, timeZone, isInProgress = true }) {
   const inputs = trip.inputs ?? {};
   return (
     <Card padded={false} className={styles.activeCard}>
@@ -288,7 +416,13 @@ function ActiveTripCard({ trip, progress, timeZone }) {
                 ) : null}
               </p>
             </div>
-            <Badge tone="primary" dot>In progress</Badge>
+            <Badge tone={isInProgress ? "primary" : "neutral"} dot>
+              {isInProgress ? "In progress" : "Scheduled"}
+            </Badge>
+          </div>
+
+          <div className={styles.activeSim}>
+            <PlayBar timeZone={timeZone} variant="compact" />
           </div>
 
           <div className={styles.activeStats}>
@@ -344,23 +478,26 @@ function useRecentList(count, refreshKey) {
   const slice = ids.slice(0, count);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const hasTripIds = slice.length > 0;
 
   useEffect(() => {
-    if (slice.length === 0) {
-      setItems([]);
-      setLoading(false);
+    if (!hasTripIds) {
       return undefined;
     }
     const controller = new AbortController();
-    setLoading(true);
-    Promise.all(
-      slice.map((id) =>
-        getTrip(id, { signal: controller.signal }).catch((err) => {
-          if (err.name === "AbortError") throw err;
-          return { id, __failed: true, inputs: {}, summary: {} };
-        }),
-      ),
-    )
+    Promise.resolve()
+      .then(() => {
+        if (controller.signal.aborted) return [];
+        setLoading(true);
+        return Promise.all(
+          slice.map((id) =>
+            getTrip(id, { signal: controller.signal }).catch((err) => {
+              if (err.name === "AbortError") throw err;
+              return { id, __failed: true, inputs: {}, summary: {} };
+            }),
+          ),
+        );
+      })
       .then((results) => {
         if (controller.signal.aborted) return;
         setItems(results);
@@ -373,9 +510,12 @@ function useRecentList(count, refreshKey) {
       controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slice.join("|"), refreshKey]);
+  }, [slice.join("|"), refreshKey, hasTripIds]);
 
-  return { items, loading };
+  return {
+    items: hasTripIds ? items : [],
+    loading: hasTripIds ? loading : false,
+  };
 }
 
 function Stat({ label, value, unit, dense = false }) {
@@ -486,17 +626,37 @@ function shortTz(timeZone) {
 }
 
 function todayIso(timeZone) {
+  return isoDateInZone(Date.now(), timeZone);
+}
+
+function isoDateInZone(ms, timeZone) {
   try {
-    const parts = new Intl.DateTimeFormat("en-US", {
+    const parts = new Intl.DateTimeFormat("en-CA", {
       timeZone,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-    }).formatToParts(new Date());
+    }).formatToParts(new Date(ms));
     const by = Object.fromEntries(parts.map((p) => [p.type, p.value]));
     return `${by.year}-${by.month}-${by.day}`;
   } catch {
-    return new Date().toISOString().slice(0, 10);
+    return new Date(ms).toISOString().slice(0, 10);
+  }
+}
+
+function minuteOfDayInZone(ms, timeZone) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date(ms));
+    const by = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+    return Number(by.hour) * 60 + Number(by.minute);
+  } catch {
+    const d = new Date(ms);
+    return d.getHours() * 60 + d.getMinutes();
   }
 }
 

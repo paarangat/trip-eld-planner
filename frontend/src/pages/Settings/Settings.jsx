@@ -4,7 +4,7 @@ import Button from "../../components/Button/Button.jsx";
 import Card from "../../components/Card/Card.jsx";
 import PageHeader from "../../components/PageHeader/PageHeader.jsx";
 import TextField from "../../components/TextField/TextField.jsx";
-import { useToast } from "../../components/Toast/Toast.jsx";
+import { useToast } from "../../components/Toast/useToast.js";
 import { useRecentTrips } from "../../hooks/useRecentTrips.js";
 import { useSettings } from "../../hooks/useSettings.js";
 import styles from "./Settings.module.css";

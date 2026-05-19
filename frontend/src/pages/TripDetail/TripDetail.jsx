@@ -4,14 +4,21 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import Badge from "../../components/Badge/Badge.jsx";
 import Button from "../../components/Button/Button.jsx";
 import Card from "../../components/Card/Card.jsx";
+import ComplianceGauge from "../../components/ComplianceGauge/ComplianceGauge.jsx";
 import EmptyState from "../../components/EmptyState/EmptyState.jsx";
 import LogSheet from "../../components/LogSheet/LogSheet.jsx";
 import PageHeader from "../../components/PageHeader/PageHeader.jsx";
+import PlayBar from "../../components/PlayBar/PlayBar.jsx";
 import RouteMap from "../../components/RouteMap/RouteMap.jsx";
 import Skeleton from "../../components/Skeleton/Skeleton.jsx";
 import StatCard from "../../components/StatCard/StatCard.jsx";
 import Tabs from "../../components/Tabs/Tabs.jsx";
 import { ApiError, getTrip } from "../../api/tripApi.js";
+import {
+  useSimulation,
+  useSimulatedClocks,
+} from "../../contexts/SimulationContext.jsx";
+import { HOS_LIMITS } from "../../lib/hosLimits.js";
 import styles from "./TripDetail.module.css";
 
 const STOP_LABELS = {
@@ -37,39 +44,60 @@ const STOP_TONE = {
 export default function TripDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [trip, setTrip] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [tab, setTab] = useState("overview");
   const [reloadKey, setReloadKey] = useState(0);
+  const requestKey = `${id}:${reloadKey}`;
+  const [request, setRequest] = useState({
+    key: requestKey,
+    trip: null,
+    loading: true,
+    error: null,
+  });
+  const { loadTrip, simulationNow, tripId: simTripId } = useSimulation();
+  const simulatedClocks = useSimulatedClocks();
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-    setTrip(null);
-    setTab("overview");
-    getTrip(id, { signal: controller.signal })
+    Promise.resolve()
+      .then(() => {
+        if (controller.signal.aborted) return null;
+        setRequest({ key: requestKey, trip: null, loading: true, error: null });
+        setTab("overview");
+        return getTrip(id, { signal: controller.signal });
+      })
       .then((data) => {
-        setTrip(data);
-        setLoading(false);
+        if (!data) return;
+        if (controller.signal.aborted) return;
+        setRequest({ key: requestKey, trip: data, loading: false, error: null });
       })
       .catch((err) => {
         if (err.name === "AbortError") return;
-        setError(err);
-        setLoading(false);
+        if (controller.signal.aborted) return;
+        setRequest({ key: requestKey, trip: null, loading: false, error: err });
       });
     return () => {
       controller.abort();
     };
-  }, [id, reloadKey]);
+  }, [id, reloadKey, requestKey]);
+
+  const requestStale = request.key !== requestKey;
+  const trip = requestStale ? null : request.trip;
+  const loading = requestStale || request.loading;
+  const error = requestStale ? null : request.error;
 
   const empty = !loading && !trip;
   const emptyLogs = trip && (!trip.daily_logs || trip.daily_logs.length === 0);
 
+  useEffect(() => {
+    if (trip && trip.id !== simTripId) {
+      loadTrip(trip);
+    }
+  }, [trip, simTripId, loadTrip]);
+
   const inputs = trip?.inputs ?? {};
   const summary = trip?.summary ?? {};
   const dailyLogs = trip?.daily_logs ?? [];
+  const routeLegs = trip?.route?.legs ?? [];
   const homeTerminalTimezone =
     trip?.home_terminal_timezone ?? inputs.home_terminal_timezone;
 
@@ -208,6 +236,47 @@ export default function TripDetail() {
                 unit={(summary.days ?? 1) === 1 ? "day" : "days"}
               />
             </div>
+            <Card data-print-hide className={styles.simBar}>
+              <div className={styles.simHeader}>
+                <div>
+                  <h2 className={styles.simTitle}>Simulate the drive</h2>
+                  <p className={styles.simHelp}>
+                    Press <strong>Play</strong> to watch the four HOS clocks tick
+                    down through the planned trip, or drag the ribbon to jump to
+                    any moment. Coloured bands show what the driver is doing —
+                    driving, on-duty, breaks, rests — and chips above call out
+                    each pickup, fuel stop, and drop-off.
+                  </p>
+                </div>
+              </div>
+              <PlayBar timeZone={homeTerminalTimezone} />
+              <div className={styles.simGauges}>
+                <ComplianceGauge
+                  label="Drive time left"
+                  remaining={simulatedClocks?.drive_left_minutes ?? null}
+                  limit={HOS_LIMITS.DRIVE}
+                  sub="of 11:00"
+                />
+                <ComplianceGauge
+                  label="On-duty window"
+                  remaining={simulatedClocks?.window_left_minutes ?? null}
+                  limit={HOS_LIMITS.WINDOW}
+                  sub="of 14:00"
+                />
+                <ComplianceGauge
+                  label="Time until break"
+                  remaining={simulatedClocks?.break_left_minutes ?? null}
+                  limit={HOS_LIMITS.BREAK}
+                  sub="until break 08:00"
+                />
+                <ComplianceGauge
+                  label="Cycle hours left"
+                  remaining={simulatedClocks?.cycle_left_minutes ?? null}
+                  limit={HOS_LIMITS.CYCLE}
+                  sub="of 70:00"
+                />
+              </div>
+            </Card>
             <div className={styles.overviewMap}>
               <RouteMap
                 route={trip.route}
@@ -244,13 +313,69 @@ export default function TripDetail() {
         ) : null}
 
         {tab === "route" ? (
-          <Card padded={false}>
+          <div className={styles.routeView}>
             <RouteMap
               route={trip.route}
               stops={trip.stops ?? []}
               places={trip.route?.places ?? []}
             />
-          </Card>
+            <section className={styles.directionsPanel}>
+              <header className={styles.directionsHeader}>
+                <div>
+                  <span className={styles.label}>Turn-by-turn</span>
+                  <h2 className={styles.directionsTitle}>Route directions</h2>
+                </div>
+                <span className={styles.directionsCount}>
+                  {formatStepCount(routeLegs)}
+                </span>
+              </header>
+              <div className={styles.legDirections}>
+                {routeLegs.map((leg, legIndex) => (
+                  <section
+                    key={`${leg.from}-${leg.to}-${legIndex}`}
+                    className={styles.routeLeg}
+                  >
+                    <div className={styles.legHead}>
+                      <h3>
+                        {leg.from} → {leg.to}
+                      </h3>
+                      <span>
+                        {formatMiles(leg.distance_miles)} ·{" "}
+                        {formatDurationHours(leg.duration_hours)}
+                      </span>
+                    </div>
+                    {(leg.steps ?? []).length > 0 ? (
+                      <ol className={styles.stepList}>
+                        {leg.steps.map((step, stepIndex) => (
+                          <li
+                            key={`${stepIndex}-${step.instruction}`}
+                            className={styles.stepItem}
+                          >
+                            <span className={styles.stepIndex}>
+                              {stepIndex + 1}
+                            </span>
+                            <div className={styles.stepBody}>
+                              <p className={styles.stepInstruction}>
+                                {step.instruction}
+                              </p>
+                              <span className={styles.stepMeta}>
+                                {formatMeters(step.distance_meters)} ·{" "}
+                                {formatDurationSeconds(step.duration_seconds)}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    ) : (
+                      <p className={styles.noDirections}>
+                        No turn-by-turn directions were returned for this leg.
+                      </p>
+                    )}
+                  </section>
+                ))}
+              </div>
+            </section>
+          </div>
         ) : null}
 
         {tab === "logs" ? (
@@ -261,6 +386,7 @@ export default function TripDetail() {
                 log={log}
                 dayNumber={idx + 1}
                 homeTerminalTimezone={homeTerminalTimezone}
+                simulationNow={simulationNow}
               />
             ))}
           </div>
@@ -354,6 +480,49 @@ function formatTime(iso, timeZone) {
   } catch {
     return iso;
   }
+}
+
+function formatStepCount(legs) {
+  const count = legs.reduce((total, leg) => total + (leg.steps?.length ?? 0), 0);
+  if (count === 1) return "1 step";
+  return `${count.toLocaleString()} steps`;
+}
+
+function formatMiles(value) {
+  const miles = Number(value);
+  if (!Number.isFinite(miles)) return "0 mi";
+  return `${miles.toLocaleString(undefined, {
+    maximumFractionDigits: miles < 10 ? 1 : 0,
+  })} mi`;
+}
+
+function formatMeters(value) {
+  const meters = Number(value);
+  if (!Number.isFinite(meters) || meters <= 0) return "0 mi";
+  const miles = meters / 1609.344;
+  if (miles < 0.1) {
+    return `${Math.round(miles * 5280).toLocaleString()} ft`;
+  }
+  return formatMiles(miles);
+}
+
+function formatDurationHours(value) {
+  const hours = Number(value);
+  if (!Number.isFinite(hours) || hours <= 0) return "0 min";
+  return formatMinutes(Math.round(hours * 60));
+}
+
+function formatDurationSeconds(value) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds <= 0) return "0 min";
+  return formatMinutes(Math.max(1, Math.round(seconds / 60)));
+}
+
+function formatMinutes(totalMinutes) {
+  if (totalMinutes < 60) return `${totalMinutes} min`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes > 0 ? `${hours} hr ${minutes} min` : `${hours} hr`;
 }
 
 function formatEndDate(logs) {

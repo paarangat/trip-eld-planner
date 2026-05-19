@@ -1,9 +1,18 @@
+import { useEffect } from "react";
+
 import Card from "../../components/Card/Card.jsx";
 import ComplianceGauge from "../../components/ComplianceGauge/ComplianceGauge.jsx";
 import PageHeader from "../../components/PageHeader/PageHeader.jsx";
+import PlayBar from "../../components/PlayBar/PlayBar.jsx";
+import {
+  useSimulatedActivity,
+  useSimulatedClocks,
+  useSimulation,
+} from "../../contexts/SimulationContext.jsx";
 import { useActiveTrip } from "../../hooks/useActiveTrip.js";
 import { useCycleHours } from "../../hooks/useCycleHours.js";
 import { useSettings } from "../../hooks/useSettings.js";
+import { useTripStatusOverrides } from "../../hooks/useTripStatusOverrides.js";
 import { HOS_LIMITS } from "../../lib/hosLimits.js";
 import { TRIP_STATUS, tripStatus } from "../../lib/tripStatus.js";
 import styles from "./Compliance.module.css";
@@ -55,21 +64,54 @@ export default function Compliance() {
   const { settings } = useSettings();
   const cycleHours = useCycleHours(settings);
   const { trip, todayLog } = useActiveTrip(settings.timezone);
+  const { overrides: statusOverrides } = useTripStatusOverrides();
+  const timeZone = settings.timezone ?? "America/Chicago";
 
-  const status = trip ? tripStatus(trip) : null;
+  const status = trip
+    ? tripStatus(trip, statusOverrides[trip.id] ?? null)
+    : null;
   const isInProgress = status === TRIP_STATUS.IN_PROGRESS;
-  const activeLog = isInProgress ? todayLog : null;
-  const backendClocks = activeLog?.hos_clocks ?? {};
+  const isUpcoming = status === TRIP_STATUS.UPCOMING;
+
+  // Sync the active (or upcoming) trip into the global simulator so the
+  // gauges, the activity badge, and the embedded PlayBar all read from one
+  // source — and so scrubbing on this page persists across navigation.
+  const {
+    loadTrip: loadIntoSimulator,
+    hasTrip: simulatorHasTrip,
+  } = useSimulation();
+  const simulatedClocks = useSimulatedClocks();
+  const activity = useSimulatedActivity();
+  useEffect(() => {
+    if (trip && (isInProgress || isUpcoming)) {
+      loadIntoSimulator(trip);
+    }
+  }, [trip, isInProgress, isUpcoming, loadIntoSimulator]);
+
+  const useSimulated =
+    (isInProgress || isUpcoming) && simulatorHasTrip && simulatedClocks;
+  const backendClocks = (isInProgress ? todayLog : null)?.hos_clocks ?? {};
   const fallbackCycleLeft = Math.max(0, HOS_LIMITS.CYCLE - (cycleHours ?? 0) * 60);
-  const clocks = {
-    driveLeft: backendClocks.drive_left_minutes ?? null,
-    windowLeft: backendClocks.window_left_minutes ?? null,
-    breakLeft: backendClocks.break_left_minutes ?? null,
-    cycleLeft: backendClocks.cycle_left_minutes ?? fallbackCycleLeft,
-  };
+  const clocks = useSimulated
+    ? {
+        driveLeft: simulatedClocks.drive_left_minutes,
+        windowLeft: simulatedClocks.window_left_minutes,
+        breakLeft: simulatedClocks.break_left_minutes,
+        cycleLeft: simulatedClocks.cycle_left_minutes,
+      }
+    : {
+        driveLeft: backendClocks.drive_left_minutes ?? null,
+        windowLeft: backendClocks.window_left_minutes ?? null,
+        breakLeft: backendClocks.break_left_minutes ?? null,
+        cycleLeft: backendClocks.cycle_left_minutes ?? fallbackCycleLeft,
+      };
 
   const compliantNow = isCompliant(clocks);
-  const cycleUsedHr = (cycleHours ?? 0).toFixed(1);
+  // When simulating, derive cycle-used from the live cycle-left so the banner
+  // matches the gauge. Otherwise show the stored driver-state value.
+  const cycleUsedHr = useSimulated
+    ? ((HOS_LIMITS.CYCLE - clocks.cycleLeft) / 60).toFixed(1)
+    : (cycleHours ?? 0).toFixed(1);
 
   return (
     <>
@@ -96,7 +138,25 @@ export default function Compliance() {
       </section>
 
       <section className={styles.section}>
-        <h2 className={styles.eyebrow}>Right now</h2>
+        <div className={styles.nowHead}>
+          <h2 className={styles.eyebrow}>
+            {useSimulated && !isInProgress ? "At the simulated moment" : "Right now"}
+          </h2>
+          {useSimulated && activity ? (
+            <span
+              className={styles.nowActivity}
+              data-tone={activity.tone}
+              title={activity.note || activity.label}
+            >
+              {activity.label}
+            </span>
+          ) : null}
+        </div>
+        {simulatorHasTrip ? (
+          <div className={styles.nowSim}>
+            <PlayBar timeZone={timeZone} variant="compact" />
+          </div>
+        ) : null}
         <div className={styles.gauges}>
           <ComplianceGauge
             label="Drive time left"
@@ -134,8 +194,8 @@ export default function Compliance() {
             </h3>
             <p className={styles.bannerBody}>
               {compliantNow
-                ? `No violations in the last 8 days. Cycle usage at ${cycleUsedHr} hr of 70.`
-                : `One of your clocks is below the safety threshold. Cycle usage at ${cycleUsedHr} hr of 70.`}
+                ? `The available trip clocks are within their limits. Cycle usage is ${cycleUsedHr} hr of 70.`
+                : `One of your available clocks is below the safety threshold. Cycle usage is ${cycleUsedHr} hr of 70.`}
             </p>
           </div>
         </Card>
