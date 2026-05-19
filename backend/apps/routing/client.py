@@ -62,7 +62,7 @@ class ORSClient:
                 coordinates=coordinates,
                 profile=HGV_PROFILE,
                 format="json",
-                instructions=False,
+                instructions=True,
                 geometry=True,
             )
         )

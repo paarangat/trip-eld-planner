@@ -62,10 +62,23 @@ class RouteLeg:
     duration_seconds: float
     polyline: list[Coordinate]
     cumulative_miles: list[float] = field(default_factory=list)
+    steps: list["RouteStep"] = field(default_factory=list)
 
     @property
     def distance_miles(self) -> float:
         return self.distance_meters / METERS_PER_MILE
+
+
+@dataclass(frozen=True)
+class RouteStep:
+    """One ORS turn-by-turn instruction within a route leg."""
+
+    instruction: str
+    name: str
+    distance_meters: float
+    duration_seconds: float
+    type: int | None = None
+    way_points: tuple[int, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -136,7 +149,10 @@ class RoutingService:
         distance = float(summary.get("distance") or 0.0)
         duration = float(summary.get("duration") or 0.0)
         polyline_points = _decode_polyline(route.get("geometry") or "")
-        cumulative = _cumulative_miles(polyline_points)
+        cumulative = _scale_cumulative_miles(
+            _cumulative_miles(polyline_points), distance / METERS_PER_MILE
+        )
+        steps = _extract_route_steps(route)
         return RouteLeg(
             start=start,
             end=end,
@@ -144,6 +160,7 @@ class RoutingService:
             duration_seconds=duration,
             polyline=polyline_points,
             cumulative_miles=cumulative,
+            steps=steps,
         )
 
 
@@ -203,6 +220,60 @@ def _decode_polyline(encoded: str) -> list[Coordinate]:
     return [Coordinate(lat=float(pt[1]), lng=float(pt[0])) for pt in coords if len(pt) >= 2]
 
 
+def _extract_route_steps(route: dict) -> list[RouteStep]:
+    """Flatten ORS segment steps into the leg's ordered instructions."""
+    route_steps: list[RouteStep] = []
+    for segment in route.get("segments") or []:
+        for raw_step in segment.get("steps") or []:
+            step = _route_step_from_ors(raw_step)
+            if step is not None:
+                route_steps.append(step)
+    return route_steps
+
+
+def _route_step_from_ors(raw_step: dict) -> RouteStep | None:
+    instruction = str(raw_step.get("instruction") or "").strip()
+    name = str(raw_step.get("name") or "").strip()
+    if not instruction:
+        instruction = name
+    if not instruction:
+        return None
+
+    return RouteStep(
+        instruction=instruction,
+        name=name,
+        distance_meters=_float_or_zero(raw_step.get("distance")),
+        duration_seconds=_float_or_zero(raw_step.get("duration")),
+        type=_int_or_none(raw_step.get("type")),
+        way_points=_way_points(raw_step.get("way_points")),
+    )
+
+
+def _float_or_zero(value) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _int_or_none(value) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _way_points(value) -> tuple[int, ...]:
+    if not isinstance(value, list):
+        return ()
+    points: list[int] = []
+    for point in value:
+        converted = _int_or_none(point)
+        if converted is not None:
+            points.append(converted)
+    return tuple(points)
+
+
 def _cumulative_miles(points: list[Coordinate]) -> list[float]:
     """Walk the polyline and accumulate haversine distance in miles per point."""
     if not points:
@@ -211,6 +282,24 @@ def _cumulative_miles(points: list[Coordinate]) -> list[float]:
     for i in range(1, len(points)):
         cumulative.append(cumulative[-1] + _haversine_miles(points[i - 1], points[i]))
     return cumulative
+
+
+def _scale_cumulative_miles(
+    cumulative: list[float], target_total_miles: float
+) -> list[float]:
+    """Normalize geometry-derived mileage to the provider summary distance.
+
+    ORS summary distance follows roads; decoded geometry length is a haversine
+    approximation over sampled points. Fuel stops are required by route miles, so
+    the interpolation axis must end at the ORS summary distance.
+    """
+    if not cumulative:
+        return []
+    source_total = cumulative[-1]
+    if source_total <= 0 or target_total_miles <= 0:
+        return cumulative
+    scale = target_total_miles / source_total
+    return [miles * scale for miles in cumulative]
 
 
 def _haversine_miles(a: Coordinate, b: Coordinate) -> float:
