@@ -12,7 +12,6 @@ import PageHeader from "../../components/PageHeader/PageHeader.jsx";
 import PlayBar from "../../components/PlayBar/PlayBar.jsx";
 import RouteMiniMap from "../../components/RouteMiniMap/RouteMiniMap.jsx";
 import Skeleton from "../../components/Skeleton/Skeleton.jsx";
-import { getTrip } from "../../api/tripApi.js";
 import {
   useSimulatedClocks,
   useSimulation,
@@ -20,12 +19,23 @@ import {
 import { useActiveTrip } from "../../hooks/useActiveTrip.js";
 import { useRecentTrips } from "../../hooks/useRecentTrips.js";
 import { useSettings } from "../../hooks/useSettings.js";
+import { useTripList } from "../../hooks/useTripList.js";
 import { useTripStatusOverrides } from "../../hooks/useTripStatusOverrides.js";
 import { useCycleHours } from "../../hooks/useCycleHours.js";
+import {
+  formatClock,
+  formatHM,
+  formatLogDate,
+  formatShortDate,
+  isoDateInZone,
+  minuteOfDayInZone,
+  routeLabel,
+  shortTimeZone,
+  todayIso,
+} from "../../lib/format.js";
 import { HOS_LIMITS } from "../../lib/hosLimits.js";
 import {
   formatDecimalHours,
-  formatHM,
   tripProgress,
 } from "../../lib/tripProgress.js";
 import { TRIP_STATUS, tripStatus } from "../../lib/tripStatus.js";
@@ -52,7 +62,7 @@ export default function Dashboard() {
 
   // Backend attaches the four remaining-time clocks to each daily log. When
   // there's no active trip / no log for today, the trip-dependent clocks render
-  // as idle ("—") and the cycle clock falls back to the driver's starting
+  // as idle ("-") and the cycle clock falls back to the driver's starting
   // state from settings.
   const status = trip
     ? tripStatus(trip, statusOverrides[trip.id] ?? null)
@@ -161,7 +171,11 @@ export default function Dashboard() {
   }, [displayLog, simulationNow, simulatorHasTrip, tz]);
 
   const [refreshKey, setRefreshKey] = useState(0);
-  const recentTrips = useRecentList(5, refreshKey);
+  const recentListIds = useMemo(
+    () => recentTripIds.slice(0, 5),
+    [recentTripIds],
+  );
+  const recentTrips = useTripList({ ids: recentListIds, refreshKey });
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const updatedAt = useMemo(
@@ -169,7 +183,7 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [tz, refreshKey],
   );
-  const tzShort = useMemo(() => shortTz(tz), [tz]);
+  const tzShort = useMemo(() => shortTimeZone(tz), [tz]);
 
   const subtitle = isInProgress && progress?.percent != null
     ? `You're ${progress.percent}% through your current trip.`
@@ -320,7 +334,7 @@ export default function Dashboard() {
                   <li key={t.id}>
                     <Link to={`/trips/${t.id}`} className={styles.recentRow}>
                       <span className={styles.recentDate}>
-                        {formatShort(t.inputs?.start_datetime, tz)}
+                        {formatShortDate(t.inputs?.start_datetime, tz)}
                       </span>
                       <span className={styles.recentRoute}>
                         {t.__failed
@@ -407,7 +421,7 @@ function ActiveTripCard({ trip, progress, timeZone, isInProgress = true }) {
               <h3 className={styles.activeTitle}>{routeLabel(inputs)}</h3>
               <p className={styles.activeMeta}>
                 Trip <span className="mono">{trip.id}</span> · planned{" "}
-                {formatPlanned(inputs.start_datetime, timeZone)}
+                {formatShortDate(inputs.start_datetime, timeZone)}
                 {progress?.nearLabel ? (
                   <>
                     {" · currently near "}
@@ -431,7 +445,7 @@ function ActiveTripCard({ trip, progress, timeZone, isInProgress = true }) {
               value={
                 progress?.milesDone != null && progress?.totalMiles != null
                   ? `${progress.milesDone.toLocaleString()} / ${progress.totalMiles.toLocaleString()}`
-                  : "—"
+                  : "-"
               }
               unit="mi"
             />
@@ -440,7 +454,7 @@ function ActiveTripCard({ trip, progress, timeZone, isInProgress = true }) {
               value={
                 progress?.driveMinutesSoFar != null
                   ? formatDecimalHours(progress.driveMinutesSoFar)
-                  : "—"
+                  : "-"
               }
               unit="hr"
             />
@@ -448,14 +462,14 @@ function ActiveTripCard({ trip, progress, timeZone, isInProgress = true }) {
               label="Next stop"
               value={
                 progress?.nextStop
-                  ? `${progress.nextStop.kindLabel} — ${progress.nextStop.label}`
-                  : "—"
+                  ? `${progress.nextStop.kindLabel} - ${progress.nextStop.label}`
+                  : "-"
               }
               dense
             />
             <Stat
               label="ETA next stop"
-              value={progress?.etaNextStop ?? "—"}
+              value={progress?.etaNextStop ?? "-"}
             />
           </div>
 
@@ -463,59 +477,11 @@ function ActiveTripCard({ trip, progress, timeZone, isInProgress = true }) {
             <Button as={Link} to={`/trips/${trip.id}`} variant="primary" size="md">
               View full trip →
             </Button>
-            <Button variant="secondary" size="md" leadingIcon={<PinSmallIcon />}>
-              Center map
-            </Button>
           </div>
         </div>
       </div>
     </Card>
   );
-}
-
-function useRecentList(count, refreshKey) {
-  const { ids } = useRecentTrips();
-  const slice = ids.slice(0, count);
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const hasTripIds = slice.length > 0;
-
-  useEffect(() => {
-    if (!hasTripIds) {
-      return undefined;
-    }
-    const controller = new AbortController();
-    Promise.resolve()
-      .then(() => {
-        if (controller.signal.aborted) return [];
-        setLoading(true);
-        return Promise.all(
-          slice.map((id) =>
-            getTrip(id, { signal: controller.signal }).catch((err) => {
-              if (err.name === "AbortError") throw err;
-              return { id, __failed: true, inputs: {}, summary: {} };
-            }),
-          ),
-        );
-      })
-      .then((results) => {
-        if (controller.signal.aborted) return;
-        setItems(results);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-      });
-    return () => {
-      controller.abort();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slice.join("|"), refreshKey, hasTripIds]);
-
-  return {
-    items: hasTripIds ? items : [],
-    loading: hasTripIds ? loading : false,
-  };
 }
 
 function Stat({ label, value, unit, dense = false }) {
@@ -546,119 +512,6 @@ function RecentSkeleton() {
   );
 }
 
-function routeLabel(inputs = {}) {
-  const current = inputs.current_location || "—";
-  const pickup = inputs.pickup_location;
-  const dropoff = inputs.dropoff_location || "—";
-  return pickup ? `${current} → ${pickup} → ${dropoff}` : `${current} → ${dropoff}`;
-}
-
-function formatShort(iso, timeZone) {
-  if (!iso) return "—";
-  try {
-    return new Date(iso)
-      .toLocaleDateString("en-US", {
-        timeZone,
-        month: "short",
-        day: "numeric",
-        year: "2-digit",
-      })
-      .replace(/(\d+),? (\d+)$/, (_m, d, y) => `${d} '${y}`);
-  } catch {
-    return iso;
-  }
-}
-
-function formatPlanned(iso, timeZone) {
-  if (!iso) return "—";
-  try {
-    return new Date(iso)
-      .toLocaleDateString("en-US", {
-        timeZone,
-        month: "short",
-        day: "numeric",
-        year: "2-digit",
-      })
-      .replace(/(\d+),? (\d+)$/, (_m, d, y) => `${d} '${y}`);
-  } catch {
-    return iso;
-  }
-}
-
-function formatLogDate(iso) {
-  if (!iso) return "";
-  try {
-    return new Date(`${iso.slice(0, 10)}T12:00:00`)
-      .toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "2-digit",
-      })
-      .replace(/(\d+),? (\d+)$/, (_m, d, y) => `${d} '${y}`);
-  } catch {
-    return iso;
-  }
-}
-
-function formatClock(date, timeZone) {
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(date);
-  } catch {
-    return date.toISOString().slice(11, 16);
-  }
-}
-
-function shortTz(timeZone) {
-  try {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      timeZoneName: "short",
-    }).formatToParts(new Date());
-    return parts.find((p) => p.type === "timeZoneName")?.value ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function todayIso(timeZone) {
-  return isoDateInZone(Date.now(), timeZone);
-}
-
-function isoDateInZone(ms, timeZone) {
-  try {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(new Date(ms));
-    const by = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-    return `${by.year}-${by.month}-${by.day}`;
-  } catch {
-    return new Date(ms).toISOString().slice(0, 10);
-  }
-}
-
-function minuteOfDayInZone(ms, timeZone) {
-  try {
-    const parts = new Intl.DateTimeFormat("en-GB", {
-      timeZone,
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).formatToParts(new Date(ms));
-    const by = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-    return Number(by.hour) * 60 + Number(by.minute);
-  } catch {
-    const d = new Date(ms);
-    return d.getHours() * 60 + d.getMinutes();
-  }
-}
 
 function MapPinIcon() {
   return (
@@ -670,20 +523,6 @@ function MapPinIcon() {
         strokeLinejoin="round"
       />
       <circle cx="11" cy="9" r="2" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
-  );
-}
-
-function PinSmallIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path
-        d="M7 12c2.5-2.5 4-4.4 4-6.4A4 4 0 0 0 3 5.6c0 2 1.5 3.9 4 6.4z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      <circle cx="7" cy="5.6" r="1.2" stroke="currentColor" strokeWidth="1.4" />
     </svg>
   );
 }

@@ -272,7 +272,7 @@ function formatMonthLabel(year, month) {
 
 function formatCellLabel(cell) {
   const date = formatLongDate(cell.iso);
-  if (!cell.log) return `${date} — no logs`;
+  if (!cell.log) return `${date} - no logs`;
   const hours = formatHours(cell.log.totals?.driving_minutes ?? 0);
-  return `${date} — ${hours} hours driving`;
+  return `${date} - ${hours} hours driving`;
 }

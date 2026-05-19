@@ -11,10 +11,11 @@ import PageHeader from "../../components/PageHeader/PageHeader.jsx";
 import SearchInput from "../../components/SearchInput/SearchInput.jsx";
 import Skeleton from "../../components/Skeleton/Skeleton.jsx";
 import Tabs from "../../components/Tabs/Tabs.jsx";
-import { getTrip } from "../../api/tripApi.js";
 import { useRecentTrips } from "../../hooks/useRecentTrips.js";
 import { useSettings } from "../../hooks/useSettings.js";
+import { useTripList } from "../../hooks/useTripList.js";
 import { useTripStatusOverrides } from "../../hooks/useTripStatusOverrides.js";
+import { csvCell, formatShortDate, routeLabel } from "../../lib/format.js";
 import {
   MANUAL_STATUS_OPTIONS,
   TRIP_STATUS,
@@ -43,7 +44,7 @@ export default function TripHistory() {
 
   // The cycle counter and its "continued from trip X" carryover live in
   // dispatch.settings, independent of the recent-trip list. Clearing history
-  // must also reset them — otherwise the dashboard cycle gauge keeps showing
+  // must also reset them - otherwise the dashboard cycle gauge keeps showing
   // a rolled-forward value with no trips to back it.
   const clear = () => {
     clearTripIds();
@@ -61,56 +62,17 @@ export default function TripHistory() {
       updateSettings({ cycleHoursSource: null });
     }
   };
-  const [trips, setTrips] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [clearOpen, setClearOpen] = useState(false);
   const hasTripIds = ids.length > 0;
-
-  useEffect(() => {
-    if (!hasTripIds) {
-      return undefined;
-    }
-    const controller = new AbortController();
-    Promise.resolve()
-      .then(() => {
-        if (controller.signal.aborted) return [];
-        setLoading(true);
-        return Promise.all(
-          ids.map((id) =>
-            getTrip(id, { signal: controller.signal })
-              .then((data) => ({ ...data, __failed: false }))
-              .catch((err) => {
-                if (err.name === "AbortError") throw err;
-                return {
-                  id,
-                  __failed: true,
-                  inputs: {},
-                  summary: { total_miles: 0, days: 0 },
-                };
-              }),
-          ),
-        );
-      })
-      .then((results) => {
-        if (controller.signal.aborted) return;
-        setTrips(results);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [ids, hasTripIds]);
+  const tripList = useTripList({ ids });
 
   const effectiveTrips = useMemo(
-    () => (hasTripIds ? trips : []),
-    [hasTripIds, trips],
+    () => (hasTripIds ? tripList.items : []),
+    [hasTripIds, tripList.items],
   );
-  const effectiveLoading = hasTripIds ? loading : false;
+  const effectiveLoading = hasTripIds ? tripList.loading : false;
   const withStatus = useMemo(
     () =>
       effectiveTrips.map((t) => ({
@@ -142,7 +104,7 @@ export default function TripHistory() {
     const rows = [["Date", "Route", "Miles", "Days", "Status"]];
     for (const t of filtered) {
       rows.push([
-        formatShort(t.inputs?.start_datetime),
+        formatShortDate(t.inputs?.start_datetime),
         routeLabel(t.inputs),
         Math.round(t.summary?.total_miles ?? 0),
         t.summary?.days ?? 0,
@@ -165,7 +127,7 @@ export default function TripHistory() {
   const subtitle =
     total === 0
       ? "Plan a trip to populate this list."
-      : `${total} trip${total === 1 ? "" : "s"} saved locally · cached from /api/trips/{id}/`;
+      : `${total} trip${total === 1 ? "" : "s"} saved locally · fetched from /api/trips/`;
 
   const showDemo = filter === TRIP_STATUS.FAILED;
   const showEmptyState =
@@ -282,7 +244,7 @@ export default function TripHistory() {
                 <li key={trip.id} role="row" className={styles.rowItem}>
                   <Link to={`/trips/${trip.id}`} className={styles.rowLink}>
                     <span className={styles.date}>
-                      {formatShort(trip.inputs?.start_datetime)}
+                      {formatShortDate(trip.inputs?.start_datetime)}
                     </span>
                     <span className={styles.route}>
                       {trip.__failed
@@ -291,11 +253,11 @@ export default function TripHistory() {
                     </span>
                     <span className={`${styles.num} ${styles.alignRight}`}>
                       {trip.__failed
-                        ? "—"
+                        ? "-"
                         : `${Math.round(trip.summary?.total_miles ?? 0).toLocaleString()} mi`}
                     </span>
                     <span className={`${styles.num} ${styles.alignRight}`}>
-                      {trip.__failed ? "—" : `${trip.summary?.days ?? 0} d`}
+                      {trip.__failed ? "-" : `${trip.summary?.days ?? 0} d`}
                     </span>
                   </Link>
                   <div className={styles.statusCell}>
@@ -581,10 +543,10 @@ function DemoFailedTripCard() {
           Trip <span className="mono">demo-fail-001</span> · Chicago, IL → Tulsa, OK → Phoenix, AZ
         </span>
         <span className={`${styles.num} ${styles.alignRight}`}>
-          {phase === "failed" ? "—" : "1,742 mi"}
+          {phase === "failed" ? "-" : "1,742 mi"}
         </span>
         <span className={`${styles.num} ${styles.alignRight}`}>
-          {phase === "failed" ? "—" : "3 d"}
+          {phase === "failed" ? "-" : "3 d"}
         </span>
         <span>
           <DemoPhaseBadge phase={phase} />
@@ -668,36 +630,6 @@ function DemoStep({ label, active, done, terminal = false }) {
       <span>{label}</span>
     </div>
   );
-}
-
-function routeLabel(inputs = {}) {
-  const current = inputs.current_location || "—";
-  const pickup = inputs.pickup_location;
-  const dropoff = inputs.dropoff_location || "—";
-  return pickup ? `${current} → ${pickup} → ${dropoff}` : `${current} → ${dropoff}`;
-}
-
-function formatShort(iso) {
-  if (!iso) return "—";
-  try {
-    return new Date(iso)
-      .toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "2-digit",
-      })
-      .replace(/(\d+),? (\d+)$/, (_m, d, y) => `${d} '${y}`);
-  } catch {
-    return iso;
-  }
-}
-
-function csvCell(value) {
-  const str = String(value ?? "");
-  if (/[",\n]/.test(str)) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
 }
 
 function RouteIcon() {

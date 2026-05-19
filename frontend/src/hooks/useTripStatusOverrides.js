@@ -1,5 +1,5 @@
 // Per-trip manual status pins, stored locally so the driver can mark a
-// planned trip as "in progress" before its start date — useful when the
+// planned trip as "in progress" before its start date - useful when the
 // fixed-time assumption in trip planning doesn't match real dispatch.
 //
 // The map shape is { [tripId]: status } where status is one of the values

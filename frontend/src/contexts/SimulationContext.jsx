@@ -2,10 +2,10 @@
 // Scrub a virtual "now" along a planned trip's timeline.
 //
 // Two modes:
-//   - "live"   — simulationNow follows real wall-clock, ticking every second.
+//   - "live"   - simulationNow follows real wall-clock, ticking every second.
 //                Used automatically when a loaded trip's [start, end] range
 //                brackets Date.now() (an in-progress trip).
-//   - "manual" — simulationNow is controlled by the user (scrub) or by the
+//   - "manual" - simulationNow is controlled by the user (scrub) or by the
 //                playback engine (Play at speed x real ms).
 //
 // `loadTrip` is idempotent on tripId so multiple pages can load the same
@@ -62,7 +62,7 @@ export function SimulationProvider({ children }) {
         setMode("manual");
         return;
       }
-      // Idempotent — re-loading the same trip is a no-op so the user's
+      // Idempotent - re-loading the same trip is a no-op so the user's
       // scrub position survives navigation between pages.
       if (tripData.id && trip?.id === tripData.id) return;
 
@@ -133,7 +133,7 @@ export function SimulationProvider({ children }) {
   }, [tripStartMs]);
 
   // Snap back to real-time-following live mode. Only meaningful while the
-  // trip is currently in-progress per wall-clock — otherwise a no-op.
+  // trip is currently in-progress per wall-clock - otherwise a no-op.
   const goLive = useCallback(() => {
     if (tripStartMs == null || tripEndMs == null) return;
     const realNow = Date.now();
@@ -167,7 +167,7 @@ export function SimulationProvider({ children }) {
         return;
       }
       if (realNow < tripStartMs) {
-        // Wall-clock is before the trip window — leave live mode rather
+        // Wall-clock is before the trip window - leave live mode rather
         // than pinning to a pre-trip moment.
         setSimulationNow(tripStartMs);
         setMode("manual");

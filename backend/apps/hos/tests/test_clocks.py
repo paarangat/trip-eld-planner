@@ -1,7 +1,7 @@
 """Unit tests for the per-day HOS remaining-time clocks.
 
 Pure-function table-driven tests, in the style of ``test_engine.py``.
-Covers the scenarios called out in CLAUDE.md §10 — short trip, break reset,
+Covers the scenarios called out in CLAUDE.md §10 - short trip, break reset,
 cycle accumulation across days, and the high-starting-cycle edge case.
 """
 
@@ -134,7 +134,7 @@ class CycleAccumulatesAcrossDays(unittest.TestCase):
 
 class NoOnDutyYet(unittest.TestCase):
     def test_window_left_is_full_when_no_on_duty_segments(self):
-        # Off-duty all day — the 14-hour window has not started.
+        # Off-duty all day - the 14-hour window has not started.
         segments = [_seg(DutyStatus.OFF_DUTY, start_minute=0, duration_minutes=1440)]
         clocks = compute_clocks(
             segments=segments,
@@ -417,7 +417,7 @@ class TimelineSnapshotReplay(unittest.TestCase):
         snapshots = compute_timeline_clocks(
             timeline=timeline, current_cycle_hours=8.0
         )
-        # First snapshot is at the very start — clocks should be full
+        # First snapshot is at the very start - clocks should be full
         # except cycle, which reflects the starting 8 hours used.
         first = snapshots[0].clocks
         self.assertEqual(first.drive_left_minutes, MAX_DRIVING_MINUTES)
@@ -487,7 +487,7 @@ class TimelineSnapshotReplay(unittest.TestCase):
             post_rest.break_left_minutes,
             CUMULATIVE_DRIVING_BEFORE_BREAK_MINUTES,
         )
-        # Cycle still reflects the 11h drive — NOT reset by a 10-hr rest.
+        # Cycle still reflects the 11h drive - NOT reset by a 10-hr rest.
         self.assertEqual(
             post_rest.cycle_left_minutes, CYCLE_LIMIT_MINUTES - 11 * 60
         )

@@ -18,28 +18,10 @@ import {
   useSimulation,
   useSimulatedClocks,
 } from "../../contexts/SimulationContext.jsx";
+import { routeLabel } from "../../lib/format.js";
 import { HOS_LIMITS } from "../../lib/hosLimits.js";
+import { stopLabel, stopTone } from "../../lib/stops.js";
 import styles from "./TripDetail.module.css";
-
-const STOP_LABELS = {
-  start: "Start",
-  pickup: "Pickup",
-  dropoff: "Drop-off",
-  fuel: "Fuel",
-  break: "Break",
-  rest: "10-hr rest",
-  restart: "34-hr restart",
-};
-
-const STOP_TONE = {
-  start: "neutral",
-  pickup: "success",
-  dropoff: "danger",
-  fuel: "warn",
-  break: "neutral",
-  rest: "primary",
-  restart: "primary",
-};
 
 export default function TripDetail() {
   const { id } = useParams();
@@ -201,7 +183,7 @@ export default function TripDetail() {
             <Badge tone="warn" dot>No daily logs</Badge>
             <span>
               This trip didn't produce any daily logs. The route may be
-              incomplete — try replanning with the same inputs.
+              incomplete - try replanning with the same inputs.
             </span>
           </div>
         </Card>
@@ -243,8 +225,8 @@ export default function TripDetail() {
                   <p className={styles.simHelp}>
                     Press <strong>Play</strong> to watch the four HOS clocks tick
                     down through the planned trip, or drag the ribbon to jump to
-                    any moment. Coloured bands show what the driver is doing —
-                    driving, on-duty, breaks, rests — and chips above call out
+                    any moment. Coloured bands show what the driver is doing -
+                    driving, on-duty, breaks, rests - and chips above call out
                     each pickup, fuel stop, and drop-off.
                   </p>
                 </div>
@@ -408,8 +390,8 @@ export default function TripDetail() {
                 {(trip.stops ?? []).map((s, i) => (
                   <tr key={i}>
                     <td>
-                      <Badge tone={STOP_TONE[s.kind] ?? "neutral"} dot>
-                        {STOP_LABELS[s.kind] ?? s.kind}
+                      <Badge tone={stopTone(s.kind)} dot>
+                        {stopLabel(s.kind)}
                       </Badge>
                     </td>
                     <td className="mono tabular">
@@ -419,7 +401,7 @@ export default function TripDetail() {
                       {formatTime(s.end, homeTerminalTimezone)}
                     </td>
                     <td>{s.label}</td>
-                    <td className={styles.note}>{s.note || "—"}</td>
+                    <td className={styles.note}>{s.note || "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -429,12 +411,6 @@ export default function TripDetail() {
       </div>
     </>
   );
-}
-
-function routeLabel({ current_location, pickup_location, dropoff_location } = {}) {
-  const c = current_location || "—";
-  const d = dropoff_location || "—";
-  return pickup_location ? `${c} → ${pickup_location} → ${d}` : `${c} → ${d}`;
 }
 
 function formatLong(iso, timeZone) {
@@ -452,7 +428,7 @@ function formatLong(iso, timeZone) {
 }
 
 function formatLongWithTime(iso, timeZone) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   try {
     return new Date(iso).toLocaleString(undefined, {
       timeZone,
@@ -468,7 +444,7 @@ function formatLongWithTime(iso, timeZone) {
 }
 
 function formatTime(iso, timeZone) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   try {
     return new Date(iso).toLocaleString(undefined, {
       timeZone,
@@ -526,7 +502,7 @@ function formatMinutes(totalMinutes) {
 }
 
 function formatEndDate(logs) {
-  if (!logs || logs.length === 0) return "—";
+  if (!logs || logs.length === 0) return "-";
   const last = logs[logs.length - 1].date;
   try {
     return new Date(`${last}T23:59:00`).toLocaleDateString(undefined, {

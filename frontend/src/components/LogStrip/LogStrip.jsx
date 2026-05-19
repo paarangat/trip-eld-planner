@@ -8,7 +8,7 @@ const STATUS_COLORS = {
 };
 
 /**
- * Compact 24-hour duty-status strip — used in calendar cells and trip cards.
+ * Compact 24-hour duty-status strip - used in calendar cells and trip cards.
  * Renders one filled bar per segment, positioned by minute-of-day on a
  * 0..1440 axis. Optional `nowMinute` draws a vertical marker at that point.
  */

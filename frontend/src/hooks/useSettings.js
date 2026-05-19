@@ -1,4 +1,4 @@
-// User-level settings — driver name, home-terminal timezone, default start.
+// User-level settings - driver name, home-terminal timezone, default start.
 // Persisted to localStorage.
 
 import { useCallback, useEffect, useState } from "react";
@@ -11,7 +11,7 @@ const DEFAULTS = {
   defaultStartTime: "06:00",
   currentCycleHours: 0,
   // Set when ``currentCycleHours`` was rolled forward from a prior trip's
-  // projected end. Used by NewTrip to show a "continued from trip X" hint —
+  // projected end. Used by NewTrip to show a "continued from trip X" hint -
   // and to know to clear it as soon as the user manually adjusts the slider.
   cycleHoursSource: null, // { tripId: string, endDate: string } | null
 };

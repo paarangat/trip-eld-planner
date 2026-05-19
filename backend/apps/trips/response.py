@@ -1,7 +1,7 @@
 """Shape the computed trip into the JSON response.
 
 The API contract lives in ARCHITECTURE.md §8. This module is the single place
-that knows how to translate routing + HOS + ELD output into the wire format —
+that knows how to translate routing + HOS + ELD output into the wire format -
 keeping ``views.py`` thin and ``models.py`` decoupled from the wire shape.
 """
 
@@ -24,6 +24,46 @@ from apps.routing.service import RouteLeg, RouteStep, TripRoute
 
 SECONDS_PER_HOUR = 3600
 MINUTES_PER_HOUR = 60
+
+
+def build_trip_list_response(
+    trips,
+    *,
+    include_logs: bool = False,
+) -> list[dict[str, Any]]:
+    """Return lightweight trip records for list screens.
+
+    ``Trip.result`` remains the source of truth for computed fields. The list
+    shape intentionally avoids route geometry and clock snapshots because those
+    payloads are large and are only needed on the detail screen.
+    """
+    items: list[dict[str, Any]] = []
+    for trip in trips:
+        result = trip.result or {}
+        summary = result.get("summary") or {}
+        daily_logs = result.get("daily_logs") or []
+        item = {
+            "id": trip.id,
+            "inputs": result.get("inputs")
+            or {
+                "current_location": trip.current_location,
+                "pickup_location": trip.pickup_location,
+                "dropoff_location": trip.dropoff_location,
+                "current_cycle_hours": float(trip.current_cycle_hours),
+            },
+            "summary": summary,
+            "home_terminal_timezone": result.get("home_terminal_timezone"),
+            "created_at": trip.created_at.isoformat(),
+            "daily_log_dates": [
+                log["date"]
+                for log in daily_logs
+                if isinstance(log, dict) and log.get("date")
+            ],
+        }
+        if include_logs:
+            item["daily_logs"] = daily_logs
+        items.append(item)
+    return items
 
 
 def build_trip_response(
@@ -136,7 +176,7 @@ def _serialize_daily_logs(
 
 
 # ---------------------------------------------------------------------------
-# Serializers (dict, not DRF — the model is dataclass-based)
+# Serializers (dict, not DRF - the model is dataclass-based)
 # ---------------------------------------------------------------------------
 
 
@@ -246,7 +286,7 @@ def _timezone_name(moment: datetime) -> str:
 def _minute_of_day_inclusive_end(start: datetime, end: datetime) -> int:
     """End-of-day clipping: if a segment ends exactly at 00:00 next day, treat it as 24*60.
 
-    This keeps SVG rendering simple — the frontend uses minute-of-day to position
+    This keeps SVG rendering simple - the frontend uses minute-of-day to position
     segments on a 0..1440 axis.
     """
     if end.date() != start.date():

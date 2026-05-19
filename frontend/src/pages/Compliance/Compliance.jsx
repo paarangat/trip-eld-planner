@@ -75,7 +75,7 @@ export default function Compliance() {
 
   // Sync the active (or upcoming) trip into the global simulator so the
   // gauges, the activity badge, and the embedded PlayBar all read from one
-  // source — and so scrubbing on this page persists across navigation.
+  // source - and so scrubbing on this page persists across navigation.
   const {
     loadTrip: loadIntoSimulator,
     hasTrip: simulatorHasTrip,
@@ -201,7 +201,7 @@ export default function Compliance() {
         </Card>
 
         <p className={styles.foot}>
-          Reference: U.S. Federal Motor Carrier Safety Administration, 49 CFR §395 —
+          Reference: U.S. Federal Motor Carrier Safety Administration, 49 CFR §395 -
           property-carrying driver, 70-hour / 8-day cycle.
         </p>
       </section>

@@ -1,4 +1,4 @@
-// One FMCSA daily log, drawn as SVG. Renders from a DailyLog payload — the
+// One FMCSA daily log, drawn as SVG. Renders from a DailyLog payload - the
 // 24-hour grid, 4 duty-status rows, the continuous step line, totals, and remarks.
 
 import { useEffect, useMemo } from "react";
@@ -23,7 +23,7 @@ const ROW_FULL_LABELS = {
 const DEFAULT_HOME_TERMINAL_TIMEZONE = "America/Chicago";
 const PLACEHOLDER = "Not provided";
 
-// SVG geometry — designed at this viewBox; scales to container width.
+// SVG geometry - designed at this viewBox; scales to container width.
 const VIEW_W = 960;
 const PAD_L = 70;
 const PAD_R = 20;

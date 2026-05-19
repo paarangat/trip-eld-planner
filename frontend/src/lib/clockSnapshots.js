@@ -1,7 +1,7 @@
 // Pure lookup over the backend-computed `clock_snapshots[]` payload. The
 // backend already encodes resets as two snapshots at the same timestamp, so
 // linear interpolation between adjacent snapshots gives the right values
-// at any moment — no HOS math runs in the browser. CLAUDE.md §6.
+// at any moment - no HOS math runs in the browser. CLAUDE.md §6.
 
 export function parseSnapshots(rawSnapshots) {
   if (!Array.isArray(rawSnapshots) || rawSnapshots.length === 0) return [];
@@ -25,7 +25,7 @@ export function clampToRange(snapshots, time) {
 }
 
 // Return interpolated clocks at `time` (ms epoch or Date). For same-timestamp
-// snapshot pairs (reset boundaries), the *later* snapshot wins — that's what
+// snapshot pairs (reset boundaries), the *later* snapshot wins - that's what
 // makes a reset appear as a step instead of a smear.
 export function clocksAt(snapshots, time) {
   if (!snapshots.length) return null;

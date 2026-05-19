@@ -1,10 +1,10 @@
 """Slice a Timeline into one DailyLog per calendar day.
 
-A drive or rest that crosses midnight is split across two DailyLogs — see
+A drive or rest that crosses midnight is split across two DailyLogs - see
 CLAUDE.md §8.3. The four duty-status totals on each DailyLog must sum to
 exactly 24:00; the builder asserts this before returning.
 
-All times are interpreted in the timezone of the Timeline segments — the
+All times are interpreted in the timezone of the Timeline segments - the
 caller is responsible for using home-terminal local time end-to-end.
 """
 

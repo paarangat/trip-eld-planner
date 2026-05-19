@@ -1,7 +1,7 @@
 """Thin HTTP wrapper around the OpenRouteService API.
 
 Owns auth, timeouts, retries, and ORS error translation. Knows nothing about
-trips — callers pass coordinates and free-text place names, and receive raw
+trips - callers pass coordinates and free-text place names, and receive raw
 ORS response dicts back.
 """
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 HGV_PROFILE = "driving-hgv"
-"""Heavy-goods-vehicle profile — closer to a truck's routing than driving-car."""
+"""Heavy-goods-vehicle profile - closer to a truck's routing than driving-car."""
 
 
 class ORSClientError(Exception):
@@ -75,7 +75,7 @@ class ORSClient:
             except Exception as exc:  # ORS exception classes vary by version
                 last_error = exc
                 status = getattr(exc, "status_code", None) or getattr(exc, "status", None)
-                # 4xx errors are not transient — fail fast.
+                # 4xx errors are not transient - fail fast.
                 if isinstance(status, int) and 400 <= status < 500:
                     logger.error("ORS client error %s: %s", status, exc)
                     raise ORSClientError(str(exc), status=status) from exc

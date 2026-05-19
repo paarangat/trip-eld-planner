@@ -1,7 +1,7 @@
 /* "Ops timeline" simulator UI. Three vertical zones:
- *   1. controls — play / time / activity / reset / speed
- *   2. timeline — chip row → duty ribbon → day axis
- *   3. legend — tiny key for the ribbon colors
+ *   1. controls - play / time / activity / reset / speed
+ *   2. timeline - chip row → duty ribbon → day axis
+ *   3. legend - tiny key for the ribbon colors
  *
  * The ribbon is the visual centerpiece. Each segment of the trip is rendered
  * as a colored band sized to its true duration. Event chips float above with
@@ -246,7 +246,7 @@
 }
 
 /* -------------------------------------------------------------------------
- * Timeline — chip row → ribbon → day axis
+ * Timeline - chip row → ribbon → day axis
  * ------------------------------------------------------------------------- */
 
 .timeline {
@@ -409,7 +409,7 @@
   padding: 0 6px;
 }
 
-/* Subtle day boundary inside the ribbon — a thin light hairline. */
+/* Subtle day boundary inside the ribbon - a thin light hairline. */
 .dayBoundary {
   position: absolute;
   top: 4px;
@@ -420,7 +420,7 @@
   z-index: 2;
 }
 
-/* "Now" indicator — vertical line + handle, scrubs the whole timeline. */
+/* "Now" indicator - vertical line + handle, scrubs the whole timeline. */
 .nowLine {
   position: absolute;
   top: -38px;
@@ -487,7 +487,7 @@
   box-shadow: 0 0 0 3px var(--focus-ring, rgba(4, 120, 87, 0.4));
 }
 
-/* Day axis under the ribbon — small tracked-out day labels. */
+/* Day axis under the ribbon - small tracked-out day labels. */
 .dayAxis {
   position: relative;
   height: 22px;
@@ -579,7 +579,7 @@
 }
 
 /* -------------------------------------------------------------------------
- * Compact variant — used on the Dashboard. Slimmer ribbon, no chip row,
+ * Compact variant - used on the Dashboard. Slimmer ribbon, no chip row,
  * no day axis, no legend. Controls strip stays as-is.
  * ------------------------------------------------------------------------- */
 
@@ -621,7 +621,7 @@
 }
 
 /* -------------------------------------------------------------------------
- * Responsive — stack the controls strip on narrow screens
+ * Responsive - stack the controls strip on narrow screens
  * ------------------------------------------------------------------------- */
 
 @media (max-width: 720px) {

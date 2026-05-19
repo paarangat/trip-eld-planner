@@ -24,23 +24,23 @@ function arcPath(cx, cy, r, startAngle, endAngle) {
 }
 
 /**
- * ComplianceGauge — horizontal stat card used on the Dashboard and the
+ * ComplianceGauge - horizontal stat card used on the Dashboard and the
  * Compliance "right now" section.
  *
  * Left: a small 270° arc gauge with the percent-remaining in the centre.
  * Right: a big HH:MM readout and a sub-label.
  * Top-right: a coloured status dot (green / amber / red / muted).
  *
- * The arc fills clockwise to represent REMAINING time — full ring = lots left,
+ * The arc fills clockwise to represent REMAINING time - full ring = lots left,
  * empty ring = running out. Color tracks the ratio: green > 50%,
  * amber > 20%, red below; the card border picks up the warn/danger colour so
  * a glancing driver immediately sees which clock is the concern.
  *
  * Props:
- *   label      — Short label, e.g. "Drive time left".
- *   remaining  — Minutes remaining, or null for idle.
- *   limit      — Limit in minutes (e.g. 11*60).
- *   sub        — Sub-text under the readout (e.g. "of 11:00 today").
+ *   label      - Short label, e.g. "Drive time left".
+ *   remaining  - Minutes remaining, or null for idle.
+ *   limit      - Limit in minutes (e.g. 11*60).
+ *   sub        - Sub-text under the readout (e.g. "of 11:00 today").
  */
 export default function ComplianceGauge({ label, remaining, limit, sub = "" }) {
   const isIdle = remaining == null || limit == null || limit <= 0;
@@ -57,7 +57,7 @@ export default function ComplianceGauge({ label, remaining, limit, sub = "" }) {
   const fillPath =
     !isIdle && ratio > 0.0001 ? arcPath(CX, CY, R, ARC_START, fillEnd) : "";
 
-  const display = isIdle ? "—" : formatHM(remaining);
+  const display = isIdle ? "-" : formatHM(remaining);
   const percent = isIdle ? null : Math.round(ratio * 100);
 
   return (
@@ -92,7 +92,7 @@ export default function ComplianceGauge({ label, remaining, limit, sub = "" }) {
             ) : null}
           </svg>
           <span className={`${styles.percent} mono tabular`}>
-            {percent == null ? "—" : `${percent}%`}
+            {percent == null ? "-" : `${percent}%`}
           </span>
         </div>
         <div className={styles.readout}>

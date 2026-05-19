@@ -5,23 +5,8 @@
 import { useEffect, useState } from "react";
 
 import { getTrip } from "../api/tripApi.js";
+import { todayIso } from "../lib/format.js";
 import { useRecentTrips } from "./useRecentTrips.js";
-
-function todayIso(timeZone = "America/Chicago") {
-  try {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(new Date());
-    const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-    return `${byType.year}-${byType.month}-${byType.day}`;
-  } catch {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }
-}
 
 export function useActiveTrip(timeZone = "America/Chicago") {
   const { ids } = useRecentTrips();

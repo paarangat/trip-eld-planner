@@ -84,7 +84,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Universal visible focus — never strip without a replacement */
+/* Universal visible focus - never strip without a replacement */
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
@@ -111,7 +111,7 @@ button:disabled {
   border: 0;
 }
 
-/* Print stylesheet — used by Trip Detail's "Print logs" */
+/* Print stylesheet - used by Trip Detail's "Print logs" */
 @media print {
   body {
     background: #fff;

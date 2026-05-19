@@ -18,7 +18,7 @@ from apps.routing.client import ORSClientError
 from apps.routing.service import RoutingError, RoutingService
 
 from .models import Trip
-from .response import build_trip_response
+from .response import build_trip_list_response, build_trip_response
 from .serializers import TripCreateSerializer
 
 
@@ -40,8 +40,25 @@ def health(_request):
     return Response({"status": "ok"})
 
 
-class TripCreateView(APIView):
-    """POST /api/trips/ — computes the route + HOS schedule + daily logs."""
+class TripCollectionView(APIView):
+    """GET/POST /api/trips/ - list saved trips or compute a new trip."""
+
+    def get(self, request):
+        include_logs = request.query_params.get("include") == "logs"
+        ids = _requested_ids(request.query_params.get("ids", ""))
+        if ids:
+            trips_by_id = {trip.id: trip for trip in Trip.objects.filter(id__in=ids)}
+            trips = [trips_by_id[trip_id] for trip_id in ids if trip_id in trips_by_id]
+        else:
+            trips = Trip.objects.all()
+        return Response(
+            {
+                "results": build_trip_list_response(
+                    trips,
+                    include_logs=include_logs,
+                )
+            }
+        )
 
     def post(self, request):
         serializer = TripCreateSerializer(data=request.data)
@@ -95,7 +112,7 @@ class TripCreateView(APIView):
 
 
 class TripDetailView(APIView):
-    """GET /api/trips/{id}/ — returns the cached computed payload."""
+    """GET /api/trips/{id}/ - returns the cached computed payload."""
 
     def get(self, _request, pk: str):
         try:
@@ -112,7 +129,7 @@ class TripDetailView(APIView):
 
 
 def _default_start_datetime() -> datetime:
-    """The next 06:00 home-terminal time after the request — keeps schedules
+    """The next 06:00 home-terminal time after the request - keeps schedules
     in the future regardless of when the user submits."""
     now = datetime.now(tz=HOME_TERMINAL_TZ)
     candidate = datetime.combine(
@@ -138,6 +155,10 @@ def _create_trip_record(inputs: dict) -> Trip:
                 raise
             logger.warning("trip.id_collision retry=%d", attempt)
     raise RuntimeError("Trip create retry loop exited unexpectedly")
+
+
+def _requested_ids(raw_ids: str) -> list[str]:
+    return [value.strip() for value in raw_ids.split(",") if value.strip()]
 
 
 def _error(http_status: int, code: str, message: str) -> Response:

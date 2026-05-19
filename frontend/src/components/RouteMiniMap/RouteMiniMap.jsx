@@ -1,7 +1,6 @@
 // Compact Leaflet preview used inside the Dashboard "active trip" card.
 // Same data the full RouteMap consumes, but no header, no legend, fixed
-// height, optional "current position" marker. The full RouteMap (used on the
-// Trip Detail page) is left untouched.
+// height, optional "current position" marker.
 
 import { useEffect, useMemo } from "react";
 import {
@@ -13,23 +12,20 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 
+import {
+  hashLatLngPoints,
+  isValidLatLng,
+  routeFitPoints,
+  routeMarkers,
+  routePolyline,
+} from "../../lib/routeGeometry.js";
+import { STOP_GLYPHS } from "../../lib/stops.js";
 import styles from "./RouteMiniMap.module.css";
-
-const STOP_GLYPHS = {
-  start: "S",
-  pickup: "P",
-  dropoff: "D",
-  fuel: "F",
-  break: "B",
-  rest: "R",
-  restart: "X",
-  current: "•",
-};
 
 function miniIcon(kind) {
   return L.divIcon({
     className: "",
-    html: `<div class="mini-marker" data-kind="${kind}">${STOP_GLYPHS[kind] ?? "•"}</div>`,
+    html: `<div class="mini-marker" data-kind="${kind}">${STOP_GLYPHS[kind] ?? "*"}</div>`,
     iconSize: [22, 22],
     iconAnchor: [11, 11],
   });
@@ -37,12 +33,13 @@ function miniIcon(kind) {
 
 function FitBounds({ points }) {
   const map = useMap();
+  const hash = useMemo(() => hashLatLngPoints(points), [points]);
   useEffect(() => {
     if (points.length === 0) return;
     map.fitBounds(L.latLngBounds(points), { padding: [20, 20] });
     const timer = setTimeout(() => map.invalidateSize(), 80);
     return () => clearTimeout(timer);
-  }, [map, points]);
+  }, [map, points, hash]);
   return null;
 }
 
@@ -53,32 +50,17 @@ export default function RouteMiniMap({
   currentPosition = null,
   height = 260,
 }) {
-  const polyline = useMemo(() => {
-    const merged = [];
-    for (const leg of route?.legs ?? []) {
-      for (const point of leg.polyline ?? []) merged.push(point);
-    }
-    return merged;
-  }, [route]);
-
-  const markers = useMemo(() => {
-    const list = [];
-    if (places[0]) {
-      list.push({
-        kind: "start",
-        label: places[0].label,
-        lat: places[0].lat,
-        lng: places[0].lng,
-      });
-    }
-    for (const stop of stops) list.push(stop);
-    return list;
-  }, [places, stops]);
+  const polyline = useMemo(() => routePolyline(route), [route]);
+  const markers = useMemo(
+    () => routeMarkers({ places, stops }),
+    [places, stops],
+  );
 
   const fitPoints = useMemo(
-    () => [...polyline, ...markers.map((m) => [m.lat, m.lng])],
+    () => routeFitPoints(polyline, markers),
     [polyline, markers],
   );
+  const currentIsValid = isValidLatLng(currentPosition?.lat, currentPosition?.lng);
 
   if (polyline.length === 0) {
     return (
@@ -110,7 +92,7 @@ export default function RouteMiniMap({
             icon={miniIcon(m.kind)}
           />
         ))}
-        {currentPosition?.lat != null && currentPosition?.lng != null ? (
+        {currentIsValid ? (
           <Marker
             position={[currentPosition.lat, currentPosition.lng]}
             icon={miniIcon("current")}

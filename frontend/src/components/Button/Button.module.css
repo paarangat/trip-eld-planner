@@ -76,7 +76,7 @@
   border-color: var(--primary-hover);
 }
 
-/* Secondary — outlined */
+/* Secondary - outlined */
 .v_secondary {
   background: var(--surface);
   color: var(--text);
@@ -86,7 +86,7 @@
   background: var(--surface-2);
 }
 
-/* Ghost — text-only */
+/* Ghost - text-only */
 .v_ghost {
   background: transparent;
   color: var(--text);
@@ -106,7 +106,7 @@
   filter: brightness(0.94);
 }
 
-/* Subtle — for tertiary actions like "Open" buttons in lists */
+/* Subtle - for tertiary actions like "Open" buttons in lists */
 .v_subtle {
   background: var(--surface-2);
   color: var(--text);

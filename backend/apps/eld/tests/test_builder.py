@@ -1,4 +1,4 @@
-"""ELD builder tests — totals must sum to 24:00 and midnight crossings split."""
+"""ELD builder tests - totals must sum to 24:00 and midnight crossings split."""
 
 from __future__ import annotations
 

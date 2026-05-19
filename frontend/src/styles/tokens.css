@@ -1,4 +1,4 @@
-/* Design tokens — Dispatch.
+/* Design tokens - Dispatch.
  *
  * Calm, modern compliance-tool aesthetic. Single accent (emerald), status
  * colors reserved for HOS clocks and compliance badges, soft layered shadows.
@@ -19,14 +19,14 @@
   --text-muted: #475569;
   --text-faint: #94a3b8;
 
-  /* The single accent — used for primary actions and active nav.
+  /* The single accent - used for primary actions and active nav.
    * Emerald 700 reads as confident, premium green; emerald 800 on press. */
   --primary: #047857;
   --primary-hover: #065f46;
   --primary-soft: #d1fae5;
   --on-primary: #ffffff;
 
-  /* Status colors — only for HOS clocks and compliance badges */
+  /* Status colors - only for HOS clocks and compliance badges */
   --success: #16a34a;
   --success-soft: #dcfce7;
   --warn: #d97706;
@@ -58,12 +58,12 @@
   --space-7: 48px;
   --space-8: 64px;
 
-  /* Radii — slightly larger for a contemporary feel */
+  /* Radii - slightly larger for a contemporary feel */
   --radius-sm: 8px;
   --radius: 12px;
   --radius-pill: 999px;
 
-  /* Shadows — soft, layered. shadow-1 is a quiet lift; shadow-2 is a
+  /* Shadows - soft, layered. shadow-1 is a quiet lift; shadow-2 is a
    * floating-card elevation for hover and emphasis. */
   --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.05);
   --shadow-2: 0 1px 3px rgba(16, 24, 40, 0.06),

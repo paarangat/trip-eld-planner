@@ -29,7 +29,7 @@ class Coordinate:
     """Latitude/longitude pair.
 
     Always store as (lat, lng); convert to (lng, lat) at the ORS boundary. This
-    is the project's single defence against the most common ORS bug — see
+    is the project's single defence against the most common ORS bug - see
     CLAUDE.md §8.1.
     """
 

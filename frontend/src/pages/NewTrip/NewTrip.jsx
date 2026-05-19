@@ -13,9 +13,11 @@ import { useLocationHistory } from "../../hooks/useLocationHistory.js";
 import { useRecentTrips } from "../../hooks/useRecentTrips.js";
 import { useSettings } from "../../hooks/useSettings.js";
 import { useTripPlan } from "../../hooks/useTripPlan.js";
+import { formatHM } from "../../lib/format.js";
+import { HOS_LIMITS } from "../../lib/hosLimits.js";
 import styles from "./NewTrip.module.css";
 
-const MAX_CYCLE = 70;
+const MAX_CYCLE = HOS_LIMITS.CYCLE / 60;
 const TICKS = [0, 35, 60, 70];
 
 export default function NewTrip() {
@@ -124,11 +126,11 @@ export default function NewTrip() {
       });
       toast.push({
         tone: "success",
-        message: `Trip ${result.id} planned — ${Math.round(result.summary?.total_miles ?? 0)} mi, ${result.summary?.days ?? "?"} day(s)`,
+        message: `Trip ${result.id} planned - ${Math.round(result.summary?.total_miles ?? 0)} mi, ${result.summary?.days ?? "?"} day(s)`,
       });
       navigate(`/trips/${result.id}`);
     } catch {
-      toast.push({ tone: "danger", message: "Could not plan trip — see error above." });
+      toast.push({ tone: "danger", message: "Could not plan trip - see error above." });
     }
   }
 
@@ -291,12 +293,6 @@ function parseCycleHours(value) {
     return { ok: false, value: null };
   }
   return { ok: true, value: hours };
-}
-
-function formatHM(totalMinutes) {
-  const m = Math.max(0, Math.round(totalMinutes));
-  const h = Math.floor(m / 60);
-  return `${String(h).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 }
 
 function PinIcon() {

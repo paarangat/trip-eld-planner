@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import Badge from "../../components/Badge/Badge.jsx";
 import Button from "../../components/Button/Button.jsx";
@@ -9,18 +9,16 @@ import LogSheet from "../../components/LogSheet/LogSheet.jsx";
 import Modal from "../../components/Modal/Modal.jsx";
 import PageHeader from "../../components/PageHeader/PageHeader.jsx";
 import Skeleton from "../../components/Skeleton/Skeleton.jsx";
-import { getTrip } from "../../api/tripApi.js";
 import { useRecentTrips } from "../../hooks/useRecentTrips.js";
+import { useTripList } from "../../hooks/useTripList.js";
 import styles from "./DailyLogs.module.css";
 
 export default function DailyLogs() {
   const { ids } = useRecentTrips();
-  const [trips, setTrips] = useState([]);
-  const [failedIds, setFailedIds] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [openLog, setOpenLog] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
   const hasTripIds = ids.length > 0;
+  const tripList = useTripList({ ids, includeLogs: true, refreshKey: reloadKey });
 
   const today = useMemo(() => {
     const d = new Date();
@@ -32,46 +30,11 @@ export default function DailyLogs() {
     return { year: d.getFullYear(), month: d.getMonth() };
   });
 
-  useEffect(() => {
-    if (!hasTripIds) {
-      return undefined;
-    }
-    const controller = new AbortController();
-    Promise.resolve()
-      .then(() => {
-        if (controller.signal.aborted) return [];
-        setLoading(true);
-        return Promise.all(
-          ids.map((id) =>
-            getTrip(id, { signal: controller.signal }).catch((err) => {
-              if (err.name === "AbortError") throw err;
-              return { id, __failed: true };
-            }),
-          ),
-        );
-      })
-      .then((results) => {
-        if (controller.signal.aborted) return;
-        const loaded = results.filter((r) => !r.__failed);
-        const failed = results.filter((r) => r.__failed === true);
-        setTrips(loaded);
-        setFailedIds(failed.map((f) => f.id));
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        setLoading(false);
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [ids, reloadKey, hasTripIds]);
-
   const logsByDate = useMemo(() => {
     const m = new Map();
-    for (const trip of hasTripIds ? trips : []) {
+    for (const trip of hasTripIds ? tripList.items.filter((item) => !item.__failed) : []) {
       for (const log of trip.daily_logs ?? []) {
-        // Last-write-wins is fine — logs per date should be unique per driver.
+        // Last-write-wins is fine - logs per date should be unique per driver.
         m.set(log.date, {
           ...log,
           home_terminal_timezone:
@@ -82,7 +45,7 @@ export default function DailyLogs() {
       }
     }
     return m;
-  }, [trips, hasTripIds]);
+  }, [tripList.items, hasTripIds]);
 
   const monthLabel = useMemo(
     () =>
@@ -100,8 +63,10 @@ export default function DailyLogs() {
     });
   }
 
-  const effectiveLoading = hasTripIds ? loading : false;
-  const effectiveFailedIds = hasTripIds ? failedIds : [];
+  const effectiveLoading = hasTripIds ? tripList.loading : false;
+  const effectiveFailedIds = hasTripIds
+    ? tripList.items.filter((item) => item.__failed).map((item) => item.id)
+    : [];
   const noLogs = !effectiveLoading && logsByDate.size === 0;
 
   return (
@@ -131,7 +96,7 @@ export default function DailyLogs() {
               Some trips failed to load
             </Badge>
             <span className={styles.failMessage}>
-              {effectiveFailedIds.length} of your recent trips couldn't be loaded — their
+              {effectiveFailedIds.length} of your recent trips couldn't be loaded - their
               logs are missing from this calendar. Check your connection and
               refresh.
             </span>

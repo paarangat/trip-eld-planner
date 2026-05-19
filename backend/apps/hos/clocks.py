@@ -4,7 +4,7 @@ This module is pure: data in, data out. No Django, no I/O. ``compute_clocks``
 mirrors the four clocks the dashboard surfaces (drive, on-duty window, time
 until 30-min break, 70-hr cycle) and is the *single* source of truth for
 those numbers per finished daily log. ``compute_timeline_clocks`` replays an
-engine Timeline to emit a snapshot at every segment boundary — used by the
+engine Timeline to emit a snapshot at every segment boundary - used by the
 simulator and any other "what are the clocks at this moment" consumer. The
 frontend must not recompute either (CLAUDE.md §6).
 
@@ -64,13 +64,13 @@ def compute_clocks(
     Args:
         segments: today's duty segments, in chronological order.
         prior_on_duty_plus_drive_minutes: sum of (driving + on-duty-not-driving)
-            minutes from every daily log *before* this one — used so the cycle
+            minutes from every daily log *before* this one - used so the cycle
             clock accumulates across days.
         current_cycle_hours: the driver's pre-trip cycle hours (the starting
             value of the 70-hr cycle counter).
 
     Returns:
-        ``HOSClocks`` — integer minutes remaining for each clock, clamped to 0.
+        ``HOSClocks`` - integer minutes remaining for each clock, clamped to 0.
     """
     cycle_start_minutes = int(round(current_cycle_hours * MINUTES_PER_HOUR))
     state = _DailyClockState(
@@ -102,7 +102,7 @@ def compute_clocks_for_logs(
 
 
 # ---------------------------------------------------------------------------
-# Internals — small, pure helpers
+# Internals - small, pure helpers
 # ---------------------------------------------------------------------------
 
 
@@ -141,7 +141,7 @@ def _apply_log_segment(state: _DailyClockState, seg: LogSegment) -> None:
             state.window_used_minutes = 0
             state.drive_in_shift_minutes = 0
         elif state.window_used_minutes > 0:
-            # The 14-hr window does NOT pause for short breaks — every minute
+            # The 14-hr window does NOT pause for short breaks - every minute
             # after the first on-duty segment counts. CLAUDE.md §7.
             state.window_used_minutes += minutes
         if (
@@ -185,7 +185,7 @@ def _clocks_from_daily_state(state: _DailyClockState) -> HOSClocks:
 
 
 # ---------------------------------------------------------------------------
-# Trip-wide snapshot replay — used by the simulator
+# Trip-wide snapshot replay - used by the simulator
 # ---------------------------------------------------------------------------
 
 
@@ -214,16 +214,16 @@ def compute_timeline_clocks(
 
     For each segment we apply the effect in two phases:
 
-    * ``during`` — the continuous accumulation that happens minute-by-minute
+    * ``during`` - the continuous accumulation that happens minute-by-minute
       (driving subtracts from all four clocks; on-duty subtracts from window
       and cycle; a 30-min break still ticks the window).
-    * ``boundary`` — the one-shot reset that fires when the segment ends
+    * ``boundary`` - the one-shot reset that fires when the segment ends
       (a 10-hr rest resets the shift clocks; a 34-hr restart resets all four;
       any 30+ min off-duty or on-duty stretch resets the cumulative-drive-
       since-break counter).
 
     Splitting the two phases lets us emit two snapshots at the same timestamp
-    at the end of any reset segment — a pre-reset snapshot (so the lerp stays
+    at the end of any reset segment - a pre-reset snapshot (so the lerp stays
     flat through the rest) and a post-reset snapshot (so the gauges step
     cleanly after). The frontend can therefore lerp linearly between adjacent
     snapshots without doing HOS math (CLAUDE.md §6).
@@ -298,7 +298,7 @@ def _apply_during(state: _ReplayState, seg: DutySegment) -> None:
 def _apply_boundary(state: _ReplayState, seg: DutySegment) -> bool:
     """Apply the one-shot reset, if any, at the end of ``seg``.
 
-    Returns ``True`` if ``state`` actually changed — the caller emits a second
+    Returns ``True`` if ``state`` actually changed - the caller emits a second
     snapshot at the same timestamp so the change reads as a clean step instead
     of a smeared lerp.
     """

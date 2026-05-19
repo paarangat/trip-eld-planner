@@ -76,7 +76,7 @@ export default function PlayBar({
   // Duty-state bands across the trip duration. The ELD builder splits any
   // segment at midnight so per-day totals sum to 24h, which means a 10-hr
   // rest that crosses midnight arrives as two segments. Visually we want
-  // one continuous band — merge contiguous same-kind segments.
+  // one continuous band - merge contiguous same-kind segments.
   const bands = useMemo(() => {
     if (!segments?.length || tripDurationMs <= 0) return [];
     const raw = segments
@@ -135,7 +135,7 @@ export default function PlayBar({
     let cursor = startOfDay(tripStartMs, timeZone);
     let safety = 0;
     while (cursor < tripEndMs && safety < 14) {
-      const nextDay = addDays(cursor, 1);
+      const nextDay = addLocalDays(cursor, 1, timeZone);
       const dayStart = Math.max(tripStartMs, cursor);
       const dayEnd = Math.min(tripEndMs, nextDay);
       result.push({
@@ -153,7 +153,7 @@ export default function PlayBar({
     return result;
   }, [tripStartMs, tripEndMs, tripDurationMs, timeZone]);
 
-  // Event chips above the ribbon — only short events the user needs to find
+  // Event chips above the ribbon - only short events the user needs to find
   // (pickup/dropoff/fuel/break). Greedy row assignment so two close-together
   // chips stack instead of overprinting.
   const eventChips = useMemo(() => {
@@ -228,7 +228,7 @@ export default function PlayBar({
           {isLive ? (
             <span
               className={styles.liveTag}
-              title="Following real time — updates every second"
+              title="Following real time - updates every second"
             >
               <span className={styles.liveDot} aria-hidden />
               Live
@@ -392,7 +392,7 @@ function LegendItem({ kind, label }) {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers — segment → band classification + formatting
+// Helpers - segment → band classification + formatting
 // ---------------------------------------------------------------------------
 
 function bandKind(seg) {
@@ -448,7 +448,7 @@ function formatDuration(ms) {
 }
 
 function formatDateTime(ms, timeZone) {
-  if (ms == null) return "—";
+  if (ms == null) return "-";
   try {
     return new Intl.DateTimeFormat(undefined, {
       timeZone,
@@ -479,16 +479,25 @@ function formatDayLabel(ms, timeZone) {
 }
 
 // Timezone-aware start-of-day. Returns milliseconds at the local midnight
-// of the calendar day containing `ms` in `timeZone`. Assumes the trip does
-// not cross a DST boundary (true for the home-terminal pin in this app).
+// of the calendar day containing `ms` in `timeZone`, including DST boundary
+// days where "add 24 hours" would land on the wrong local time.
 function startOfDay(ms, timeZone) {
   const ymd = ymdInZone(ms, timeZone);
-  const offset = tzOffsetAt(ms, timeZone);
-  return Date.UTC(ymd.year, ymd.month - 1, ymd.day) - offset;
+  return zonedLocalTimeToUtcMs(ymd.year, ymd.month, ymd.day, 0, 0, timeZone);
 }
 
-function addDays(ms, days) {
-  return ms + days * 24 * 60 * 60 * 1000;
+function addLocalDays(ms, days, timeZone) {
+  const ymd = ymdInZone(ms, timeZone);
+  const utcNoon = Date.UTC(ymd.year, ymd.month - 1, ymd.day + days, 12);
+  const target = ymdInZone(utcNoon, timeZone);
+  return zonedLocalTimeToUtcMs(
+    target.year,
+    target.month,
+    target.day,
+    0,
+    0,
+    timeZone,
+  );
 }
 
 function ymdInZone(ms, timeZone) {
@@ -507,12 +516,23 @@ function ymdInZone(ms, timeZone) {
 }
 
 function tzOffsetAt(ms, timeZone) {
-  // Standard trick: format the timestamp twice — once as if it were UTC and
-  // once in the target zone — and diff. Works in all modern browsers.
+  // Standard trick: format the timestamp twice - once as if it were UTC and
+  // once in the target zone - and diff. Works in all modern browsers.
   const date = new Date(ms);
   const utc = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
   const tz = new Date(date.toLocaleString("en-US", { timeZone }));
   return tz.getTime() - utc.getTime();
+}
+
+function zonedLocalTimeToUtcMs(year, month, day, hour, minute, timeZone) {
+  const localAsUtc = Date.UTC(year, month - 1, day, hour, minute);
+  let guess = localAsUtc;
+  for (let i = 0; i < 4; i += 1) {
+    const next = localAsUtc - tzOffsetAt(guess, timeZone);
+    if (Math.abs(next - guess) < 1000) return next;
+    guess = next;
+  }
+  return guess;
 }
 
 // ---------------------------------------------------------------------------

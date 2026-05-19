@@ -61,7 +61,3 @@ export function useRecentTrips() {
 
   return { ids, remember, forget, clear };
 }
-
-export function getRecentTripIds() {
-  return load();
-}

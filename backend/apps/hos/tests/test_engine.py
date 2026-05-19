@@ -1,4 +1,4 @@
-"""Table-driven HOS engine tests — covers the scenarios in CLAUDE.md §10."""
+"""Table-driven HOS engine tests - covers the scenarios in CLAUDE.md §10."""
 
 from __future__ import annotations
 
@@ -123,7 +123,7 @@ class TieBreakingPrecedence(unittest.TestCase):
     def test_cycle_exhausted_at_dropoff_inserts_restart_first(self):
         # current_cycle_hours = 69.5 leaves 30 min on the cycle. Short legs
         # (15 min driving each) consume some but the dropoff (60 min) would
-        # push the cycle past 70 hr — engine must insert a 34-hr restart
+        # push the cycle past 70 hr - engine must insert a 34-hr restart
         # before that on-duty segment.
         route = _route(
             [
@@ -140,7 +140,7 @@ class TieBreakingPrecedence(unittest.TestCase):
     def test_eleven_hour_limit_takes_precedence_over_break(self):
         # Drive a long leg. After the 8-hr break and then 3 more hours driving,
         # the engine reaches the 11-hr cap. The next inserted event must be a
-        # 10-hr reset, not a second 30-min break — even though the driver has
+        # 10-hr reset, not a second 30-min break - even though the driver has
         # also accumulated 3 hr since the last break.
         route = _route(
             [
@@ -150,7 +150,7 @@ class TieBreakingPrecedence(unittest.TestCase):
         )
         timeline = schedule_trip(route, current_cycle_hours=0.0, start_datetime=START)
         notes = [seg.note for seg in timeline.segments]
-        # The first 30-min break appears, then later the 10-hr reset — no
+        # The first 30-min break appears, then later the 10-hr reset - no
         # second break should land between them.
         first_break_idx = notes.index("30-min break")
         first_reset_idx = notes.index("10-hr reset")

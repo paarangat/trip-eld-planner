@@ -1,4 +1,4 @@
-"""DRF serializers — all input validation lives here."""
+"""DRF serializers - all input validation lives here."""
 
 from rest_framework import serializers
 

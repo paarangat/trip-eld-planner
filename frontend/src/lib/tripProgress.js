@@ -1,9 +1,9 @@
-// Derive an "in progress" snapshot for a trip — what the Dashboard needs to
+// Derive an "in progress" snapshot for a trip - what the Dashboard needs to
 // show next to the active trip map. The backend has no notion of "current
 // position"; we project wall-clock now onto the trip's serialized timeline.
 //
 // All math is best-effort: it assumes the driver is on schedule. Anything
-// that's null means "we don't have enough data" — callers should render "—".
+// that's null means "we don't have enough data" - callers should render "-".
 
 const STOP_LABELS = {
   start: "Start",
@@ -175,13 +175,13 @@ function findFirstNamedStop(segments, kind) {
 }
 
 export function formatHM(minutes) {
-  if (minutes == null) return "—";
+  if (minutes == null) return "-";
   const m = Math.max(0, Math.round(minutes));
   const h = Math.floor(m / 60);
   return `${String(h).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 }
 
 export function formatDecimalHours(minutes) {
-  if (minutes == null) return "—";
+  if (minutes == null) return "-";
   return (Math.max(0, minutes) / 60).toFixed(1);
 }

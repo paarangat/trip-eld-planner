@@ -3,8 +3,8 @@
 // Each exported call accepts an optional `{ signal }` so callers (hooks, pages)
 // can cancel in-flight requests via AbortController. If the request is aborted,
 // the native DOMException (`err.name === "AbortError"`) propagates as-is so
-// callers can silently swallow it. All other failures — non-2xx responses and
-// malformed success bodies — surface as `ApiError` with the HTTP `status`
+// callers can silently swallow it. All other failures - non-2xx responses and
+// malformed success bodies - surface as `ApiError` with the HTTP `status`
 // attached so callers can tailor recovery (e.g. 404 vs 502).
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -59,6 +59,10 @@ export function getTrip(id, { signal } = {}) {
   return request(`/api/trips/${id}/`, { signal });
 }
 
-export function getHealth({ signal } = {}) {
-  return request("/api/health/", { signal });
+export function getTrips({ ids = [], includeLogs = false, signal } = {}) {
+  const params = new URLSearchParams();
+  if (includeLogs) params.set("include", "logs");
+  if (ids.length > 0) params.set("ids", ids.join(","));
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return request(`/api/trips/${query}`, { signal });
 }

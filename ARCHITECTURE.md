@@ -321,7 +321,7 @@ Create and compute a trip.
 }
 ```
 
-**Response (200)**
+**Response (201)**
 ```json
 {
   "id": "a1b2c3",
@@ -345,6 +345,36 @@ Create and compute a trip.
       },
       "total_miles": 600,
       "remarks": [ { "time": "06:00", "location": "Chicago, IL" } ]
+    }
+  ]
+}
+```
+
+### `GET /api/trips/`
+List saved trips for history, daily logs, and dashboard previews.
+
+**Query parameters**
+- `ids`: optional comma-separated trip IDs. When present, the response keeps the
+  requested order and silently skips missing IDs.
+- `include=logs`: include the full `daily_logs[]` payload. By default, list
+  results return only `daily_log_dates[]` to keep history/dashboard requests
+  lightweight.
+
+**Response (200)**
+```json
+{
+  "results": [
+    {
+      "id": "a1b2c3",
+      "inputs": {
+        "current_location": "Chicago, IL",
+        "pickup_location": "Dallas, TX",
+        "dropoff_location": "Denver, CO",
+        "current_cycle_hours": 12.5
+      },
+      "summary": { "total_miles": 1620, "total_drive_hours": 25.5, "days": 3 },
+      "created_at": "2026-05-18T12:00:00+00:00",
+      "daily_log_dates": ["2026-05-18", "2026-05-19", "2026-05-20"]
     }
   ]
 }

@@ -30,3 +30,6 @@ frontend/.vite/
 .vscode/
 *.swp
 .gstack/
+
+# Local study notes (not for the repo)
+CODEBASE_GUIDE.md

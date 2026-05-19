@@ -439,7 +439,7 @@
   }
   .rowLink {
     /* On narrow screens we can't keep display: contents because the grid
-       template uses named areas — fall back to a flex layout per row. */
+       template uses named areas - fall back to a flex layout per row. */
     display: contents;
   }
   .date {

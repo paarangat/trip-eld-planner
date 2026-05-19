@@ -256,7 +256,7 @@ def _gate_on_duty_capacity(
     """Ensure a non-driving on-duty segment will not exceed any active limit.
 
     The 70-hr cycle is the operative cap (it counts on-duty hours, not just
-    driving). The 14-hr window does not block non-driving on-duty work — once
+    driving). The 14-hr window does not block non-driving on-duty work - once
     the window expires the driver may still be on-duty, they just may not
     drive. CLAUDE.md §7: "Do not silently exceed the cycle."
     """
@@ -303,7 +303,7 @@ def _insert_ten_hour_reset(
     state.window_minutes_used = 0
     state.driving_minutes_in_shift = 0
     state.driving_minutes_since_break = 0
-    # The 10-hr reset does NOT reset the 70-hr cycle — only a 34-hr restart does.
+    # The 10-hr reset does NOT reset the 70-hr cycle - only a 34-hr restart does.
 
 
 def _insert_restart(
