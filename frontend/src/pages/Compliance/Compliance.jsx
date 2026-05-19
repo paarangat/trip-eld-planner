@@ -1,64 +1,64 @@
 import Card from "../../components/Card/Card.jsx";
-import HOSClock from "../../components/HOSClock/HOSClock.jsx";
+import ComplianceGauge from "../../components/ComplianceGauge/ComplianceGauge.jsx";
 import PageHeader from "../../components/PageHeader/PageHeader.jsx";
 import { useActiveTrip } from "../../hooks/useActiveTrip.js";
 import { useCycleHours } from "../../hooks/useCycleHours.js";
 import { useSettings } from "../../hooks/useSettings.js";
 import { HOS_LIMITS } from "../../lib/hosLimits.js";
+import { TRIP_STATUS, tripStatus } from "../../lib/tripStatus.js";
 import styles from "./Compliance.module.css";
 
 const RULES = [
   {
     icon: "drive",
-    title: "11 hours of driving per day",
-    body: "After 11 hours of driving in a workday, you must stop driving until you complete a 10-hour off-duty period.",
+    title: "11-hour drive limit",
+    body: "You can drive up to 11 hours per day before a 10-hour rest is required.",
   },
   {
     icon: "window",
-    title: "14-hour on-duty window",
-    body: "Once you start driving, you have a 14-hour wall-clock window to finish. Breaks do NOT pause this clock — only a 10-hour off-duty period resets it.",
+    title: "14-hour duty window",
+    body: "Your driving day is a 14-hour window. It does NOT pause for breaks.",
   },
   {
     icon: "break",
-    title: "30-minute break after 8 cumulative hours",
-    body: "You must take a 30-minute off-duty (or sleeper) break before driving any more after 8 cumulative hours of driving since your last 30+ minute break.",
+    title: "30-minute break",
+    body: "Take a 30-minute break after 8 cumulative hours of driving.",
   },
   {
     icon: "rest",
-    title: "10-hour rest before the next driving day",
-    body: "A qualifying 10-hour off-duty period resets the 11-hour and 14-hour clocks. It does NOT reset the 70-hour cycle.",
+    title: "10 hours off-duty",
+    body: "Get 10 consecutive hours off before your next driving day.",
   },
   {
     icon: "cycle",
-    title: "70 hours of on-duty time in 8 days",
-    body: "You can't drive after accumulating 70 on-duty hours in any rolling 8-day window. Both driving and on-duty-not-driving count.",
+    title: "70-hour / 8-day cycle",
+    body: "Limited to 70 hours of on-duty work in any rolling 8-day window.",
   },
   {
     icon: "restart",
-    title: "34-hour restart resets the cycle",
-    body: "A continuous 34-hour off-duty period resets your 70-hour cycle to zero.",
+    title: "34-hour restart",
+    body: "34 consecutive hours off-duty resets your weekly cycle.",
   },
   {
     icon: "fuel",
     title: "Fuel every 1,000 miles",
-    body: "Plan a fuel stop at least every 1,000 miles. Fuel time is on-duty (not driving) — it consumes the 14-hour window and the 70-hour cycle, but not the 11-hour driving limit.",
+    body: "The planner schedules fueling at least every 1,000 miles driven.",
   },
   {
     icon: "pickup",
-    title: "1 hour each for pickup and drop-off",
-    body: "Pickup and drop-off are logged as on-duty (not driving) — 1 hour each, by convention.",
+    title: "Pickup & drop-off = 1 hr",
+    body: "Pickup and drop-off each count as 1 hour of on-duty (not driving) work.",
   },
 ];
 
 export default function Compliance() {
   const { settings } = useSettings();
   const cycleHours = useCycleHours(settings);
-  const { isActive, todayLog } = useActiveTrip(settings.timezone);
+  const { trip, todayLog } = useActiveTrip(settings.timezone);
 
-  // Backend supplies the four remaining-time clocks on the active log. When
-  // there is no active trip, the three log-dependent clocks render idle and
-  // the cycle clock falls back to the driver's starting state from settings.
-  const activeLog = isActive ? todayLog : null;
+  const status = trip ? tripStatus(trip) : null;
+  const isInProgress = status === TRIP_STATUS.IN_PROGRESS;
+  const activeLog = isInProgress ? todayLog : null;
   const backendClocks = activeLog?.hos_clocks ?? {};
   const fallbackCycleLeft = Math.max(0, HOS_LIMITS.CYCLE - (cycleHours ?? 0) * 60);
   const clocks = {
@@ -68,64 +68,78 @@ export default function Compliance() {
     cycleLeft: backendClocks.cycle_left_minutes ?? fallbackCycleLeft,
   };
 
+  const compliantNow = isCompliant(clocks);
+  const cycleUsedHr = (cycleHours ?? 0).toFixed(1);
+
   return (
     <>
       <PageHeader
-        eyebrow="Reference"
         title="Compliance"
-        description="The Hours-of-Service rules this app enforces, in plain language."
+        description="The rules the engine enforces, in plain language. Reference: 49 CFR §395 (property-carrying)."
       />
 
-      <section className={styles.right}>
-        <h2 className={styles.h2}>Right now</h2>
-        <p className={styles.sub}>
-          Your live status against each of the four big clocks.
-        </p>
-        <div className={styles.clockRow}>
-          <HOSClock
-            label="Drive time"
-            remaining={clocks.driveLeft}
-            limit={HOS_LIMITS.DRIVE}
-            sub="of 11:00"
-            size="md"
-          />
-          <HOSClock
-            label="14-hr window"
-            remaining={clocks.windowLeft}
-            limit={HOS_LIMITS.WINDOW}
-            sub="of 14:00"
-            size="md"
-          />
-          <HOSClock
-            label="Until 30-min break"
-            remaining={clocks.breakLeft}
-            limit={HOS_LIMITS.BREAK}
-            sub="after 8 hr"
-            size="md"
-          />
-          <HOSClock
-            label="70-hr cycle"
-            remaining={clocks.cycleLeft}
-            limit={HOS_LIMITS.CYCLE}
-            sub="of 70:00"
-            size="md"
-          />
-        </div>
-      </section>
-
-      <section className={styles.rules}>
-        <h2 className={styles.h2}>The rules</h2>
-        <div className={styles.grid}>
+      <section className={styles.section}>
+        <h2 className={styles.eyebrow}>The rules</h2>
+        <div className={styles.rulesGrid}>
           {RULES.map((rule) => (
             <Card key={rule.title} className={styles.rule}>
               <span className={styles.ruleIcon} aria-hidden>
                 <RuleIcon kind={rule.icon} />
               </span>
-              <h3 className={styles.ruleTitle}>{rule.title}</h3>
-              <p className={styles.ruleBody}>{rule.body}</p>
+              <div className={styles.ruleText}>
+                <h3 className={styles.ruleTitle}>{rule.title}</h3>
+                <p className={styles.ruleBody}>{rule.body}</p>
+              </div>
             </Card>
           ))}
         </div>
+      </section>
+
+      <section className={styles.section}>
+        <h2 className={styles.eyebrow}>Right now</h2>
+        <div className={styles.gauges}>
+          <ComplianceGauge
+            label="Drive time left"
+            remaining={clocks.driveLeft}
+            limit={HOS_LIMITS.DRIVE}
+            sub="of 11:00 today"
+          />
+          <ComplianceGauge
+            label="On-duty window"
+            remaining={clocks.windowLeft}
+            limit={HOS_LIMITS.WINDOW}
+            sub="of 14:00 today"
+          />
+          <ComplianceGauge
+            label="Time until break"
+            remaining={clocks.breakLeft}
+            limit={HOS_LIMITS.BREAK}
+            sub="until break 08:00"
+          />
+          <ComplianceGauge
+            label="Cycle hours left"
+            remaining={clocks.cycleLeft}
+            limit={HOS_LIMITS.CYCLE}
+            sub="of 70:00 today"
+          />
+        </div>
+
+        <Card className={styles.banner} data-tone={compliantNow ? "ok" : "warn"}>
+          <span className={styles.bannerIcon} aria-hidden>
+            {compliantNow ? <CheckIcon /> : <WarnIcon />}
+          </span>
+          <div>
+            <h3 className={styles.bannerTitle}>
+              {compliantNow ? "You're compliant." : "Check your clocks."}
+            </h3>
+            <p className={styles.bannerBody}>
+              {compliantNow
+                ? `No violations in the last 8 days. Cycle usage at ${cycleUsedHr} hr of 70.`
+                : `One of your clocks is below the safety threshold. Cycle usage at ${cycleUsedHr} hr of 70.`}
+            </p>
+          </div>
+        </Card>
+
         <p className={styles.foot}>
           Reference: U.S. Federal Motor Carrier Safety Administration, 49 CFR §395 —
           property-carrying driver, 70-hour / 8-day cycle.
@@ -135,23 +149,37 @@ export default function Compliance() {
   );
 }
 
+function isCompliant(clocks) {
+  const lowRatio = (remaining, limit) =>
+    remaining != null && limit > 0 && remaining / limit <= 0.2;
+  if (lowRatio(clocks.driveLeft, HOS_LIMITS.DRIVE)) return false;
+  if (lowRatio(clocks.windowLeft, HOS_LIMITS.WINDOW)) return false;
+  if (lowRatio(clocks.breakLeft, HOS_LIMITS.BREAK)) return false;
+  if (lowRatio(clocks.cycleLeft, HOS_LIMITS.CYCLE)) return false;
+  return true;
+}
+
 function RuleIcon({ kind }) {
-  const common = { width: 18, height: 18, fill: "none", stroke: "currentColor", strokeWidth: 1.6 };
+  const common = {
+    width: 18,
+    height: 18,
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.6,
+  };
   switch (kind) {
     case "drive":
       return (
         <svg viewBox="0 0 18 18" {...common}>
-          <rect x="2" y="6" width="11" height="6" rx="1" />
-          <rect x="13" y="8" width="3" height="4" rx="0.5" />
-          <circle cx="5" cy="13" r="1.2" />
-          <circle cx="13" cy="13" r="1.2" />
+          <circle cx="9" cy="9" r="6.5" />
+          <path d="M9 5v4l3 2" strokeLinecap="round" />
         </svg>
       );
     case "window":
       return (
         <svg viewBox="0 0 18 18" {...common}>
-          <circle cx="9" cy="9" r="6.5" />
-          <path d="M9 5v4l3 2" strokeLinecap="round" />
+          <rect x="3" y="4" width="12" height="11" rx="1.5" />
+          <path d="M3 8h12M6 3v3M12 3v3" strokeLinecap="round" />
         </svg>
       );
     case "break":
@@ -165,14 +193,15 @@ function RuleIcon({ kind }) {
     case "rest":
       return (
         <svg viewBox="0 0 18 18" {...common}>
-          <path d="M14 10a5 5 0 1 1-6.5-6.5A5.5 5.5 0 0 0 14 10z" />
+          <rect x="2" y="9" width="14" height="5" rx="1.5" />
+          <path d="M5 9V7a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
         </svg>
       );
     case "cycle":
       return (
         <svg viewBox="0 0 18 18" {...common}>
-          <rect x="3" y="4" width="12" height="11" rx="1.5" />
-          <path d="M3 8h12M6 3v3M12 3v3" strokeLinecap="round" />
+          <circle cx="9" cy="9" r="6.5" />
+          <path d="M5 9h8M9 5v8" strokeLinecap="round" />
         </svg>
       );
     case "restart":
@@ -200,4 +229,32 @@ function RuleIcon({ kind }) {
     default:
       return null;
   }
+}
+
+function CheckIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path
+        d="M4 10l4 4 8-8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function WarnIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path
+        d="M10 2.5 18 16H2L10 2.5z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M10 8v4M10 14v.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
 }
