@@ -48,6 +48,17 @@ class GeocodedPlace:
 
 
 @dataclass(frozen=True)
+class LocationSuggestion:
+    """One Pelias autocomplete result, in our coordinate convention."""
+
+    label: str
+    coordinate: Coordinate
+    layer: str | None = None
+    country: str | None = None
+    region: str | None = None
+
+
+@dataclass(frozen=True)
 class RouteLeg:
     """One driving leg: from one place to the next.
 
@@ -194,6 +205,45 @@ def coordinate_at_mile(leg: RouteLeg, target_mile: float) -> Coordinate:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def autocomplete_locations(
+    query: str, *, limit: int = 5, client: ORSClient | None = None
+) -> list[LocationSuggestion]:
+    """Return up to ``limit`` Pelias suggestions for ``query``.
+
+    Empty/blank queries return an empty list without calling ORS.
+    """
+    text = query.strip()
+    if not text:
+        return []
+    ors = client or ORSClient()
+    response = ors.autocomplete(text)
+    features = response.get("features") or []
+    suggestions: list[LocationSuggestion] = []
+    for feature in features[:limit]:
+        suggestion = _suggestion_from_feature(feature)
+        if suggestion is not None:
+            suggestions.append(suggestion)
+    return suggestions
+
+
+def _suggestion_from_feature(feature: dict) -> LocationSuggestion | None:
+    geometry = feature.get("geometry") or {}
+    coords = geometry.get("coordinates") or []
+    if len(coords) < 2:
+        return None
+    properties = feature.get("properties") or {}
+    label = str(properties.get("label") or "").strip()
+    if not label:
+        return None
+    return LocationSuggestion(
+        label=label,
+        coordinate=Coordinate(lat=float(coords[1]), lng=float(coords[0])),
+        layer=properties.get("layer") or None,
+        country=properties.get("country") or None,
+        region=properties.get("region") or None,
+    )
 
 
 def _do_geocode(client: ORSClient, query: str) -> GeocodedPlace:

@@ -66,3 +66,8 @@ export function getTrips({ ids = [], includeLogs = false, signal } = {}) {
   const query = params.toString() ? `?${params.toString()}` : "";
   return request(`/api/trips/${query}`, { signal });
 }
+
+export function fetchLocationSuggestions(query, { signal } = {}) {
+  const params = new URLSearchParams({ q: query });
+  return request(`/api/geocode/autocomplete/?${params.toString()}`, { signal });
+}

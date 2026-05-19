@@ -15,7 +15,11 @@ from rest_framework.views import APIView
 from apps.eld.builder import build_daily_logs
 from apps.hos.engine import schedule_trip
 from apps.routing.client import ORSClientError
-from apps.routing.service import RoutingError, RoutingService
+from apps.routing.service import (
+    RoutingError,
+    RoutingService,
+    autocomplete_locations,
+)
 
 from .models import Trip
 from .response import build_trip_list_response, build_trip_response
@@ -38,6 +42,46 @@ TRIP_CREATE_ATTEMPTS = 3
 @api_view(["GET"])
 def health(_request):
     return Response({"status": "ok"})
+
+
+AUTOCOMPLETE_MIN_CHARS = 2
+"""Below this length, autocomplete returns empty without calling ORS."""
+
+AUTOCOMPLETE_MAX_RESULTS = 5
+
+
+@api_view(["GET"])
+def geocode_autocomplete(request):
+    """Type-ahead suggestions for the location form fields.
+
+    Proxies ORS Pelias autocomplete so the API key stays server-side. Returns
+    the user-facing label plus resolved ``[lat, lng]``; the frontend keeps the
+    coordinate alongside the picked label.
+    """
+    query = (request.query_params.get("q") or "").strip()
+    if len(query) < AUTOCOMPLETE_MIN_CHARS:
+        return Response({"results": []})
+    try:
+        suggestions = autocomplete_locations(query, limit=AUTOCOMPLETE_MAX_RESULTS)
+    except ORSClientError as exc:
+        logger.error("ORS autocomplete failure: %s", exc)
+        return _error(
+            status.HTTP_502_BAD_GATEWAY,
+            "geocode_upstream_failed",
+            "Location lookup is unavailable. Please try again.",
+        )
+    results = [
+        {
+            "label": s.label,
+            "lat": s.coordinate.lat,
+            "lng": s.coordinate.lng,
+            "layer": s.layer,
+            "country": s.country,
+            "region": s.region,
+        }
+        for s in suggestions
+    ]
+    return Response({"results": results})
 
 
 class TripCollectionView(APIView):

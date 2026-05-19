@@ -5,9 +5,9 @@ import Badge from "../../components/Badge/Badge.jsx";
 import Button from "../../components/Button/Button.jsx";
 import Card from "../../components/Card/Card.jsx";
 import ErrorBanner from "../../components/common/ErrorBanner.jsx";
+import LocationAutocomplete from "../../components/LocationAutocomplete/LocationAutocomplete.jsx";
 import PageHeader from "../../components/PageHeader/PageHeader.jsx";
 import Slider from "../../components/Slider/Slider.jsx";
-import TextField from "../../components/TextField/TextField.jsx";
 import { useToast } from "../../components/Toast/useToast.js";
 import { useLocationHistory } from "../../hooks/useLocationHistory.js";
 import { useRecentTrips } from "../../hooks/useRecentTrips.js";
@@ -153,42 +153,37 @@ export default function NewTrip() {
           <Step number={1} title="Where are you going?" />
 
           <div className={styles.fields}>
-            <TextField
+            <LocationAutocomplete
               label="Current location"
               placeholder="e.g. Chicago, IL"
               value={form.current_location}
               onChange={(v) => set("current_location", v)}
               required
-              list="loc-history"
               leadingIcon={<PinIcon />}
               disabled={loading}
+              fallbackOptions={history}
             />
-            <TextField
+            <LocationAutocomplete
               label="Pickup"
               placeholder="e.g. Dallas, TX"
               value={form.pickup_location}
               onChange={(v) => set("pickup_location", v)}
               required
-              list="loc-history"
               leadingIcon={<BoxIcon />}
               disabled={loading}
+              fallbackOptions={history}
             />
-            <TextField
+            <LocationAutocomplete
               label="Drop-off"
               placeholder="e.g. Denver, CO"
               value={form.dropoff_location}
               onChange={(v) => set("dropoff_location", v)}
               required
-              list="loc-history"
               leadingIcon={<FlagIcon />}
               disabled={loading}
+              fallbackOptions={history}
             />
           </div>
-          <datalist id="loc-history">
-            {history.map((h) => (
-              <option key={h} value={h} />
-            ))}
-          </datalist>
 
           <hr className={styles.divider} />
 

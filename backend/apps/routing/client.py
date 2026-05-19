@@ -52,6 +52,14 @@ class ORSClient:
         """Return the top Pelias geocoding result for ``text``."""
         return self._safe(lambda: self._client.pelias_search(text=text, size=1))
 
+    def autocomplete(self, text: str) -> dict[str, Any]:
+        """Return Pelias type-ahead suggestions for ``text``.
+
+        Used by the location-autocomplete endpoint - each keystroke (debounced)
+        hits this. Caller is responsible for slicing/limiting features.
+        """
+        return self._safe(lambda: self._client.pelias_autocomplete(text=text))
+
     def directions(self, coordinates: list[tuple[float, float]]) -> dict[str, Any]:
         """Request a driving-HGV route for the given ordered ``(lng, lat)`` pairs.
 
