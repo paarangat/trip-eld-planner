@@ -58,8 +58,8 @@ export default function NewTrip() {
     [form.current_cycle_hours],
   );
   const cycleHours = cycleHoursResult.ok ? cycleHoursResult.value : 0;
-  const cycleLeft = useMemo(
-    () => Math.max(0, MAX_CYCLE - cycleHours),
+  const cycleLeftMinutes = useMemo(
+    () => Math.max(0, (MAX_CYCLE - cycleHours) * 60),
     [cycleHours],
   );
 
@@ -98,7 +98,6 @@ export default function NewTrip() {
       });
       navigate(`/trips/${result.id}`);
     } catch {
-      // ErrorBanner shows it; toast as backup
       toast.push({ tone: "danger", message: "Could not plan trip — see error above." });
     }
   }
@@ -106,9 +105,8 @@ export default function NewTrip() {
   return (
     <>
       <PageHeader
-        eyebrow="Plan a trip"
-        title="Where are you going?"
-        description="Four inputs. Dispatch returns a routed map plus FMCSA daily logs."
+        title="Plan a new trip"
+        description="The engine returns a compliant route with fuel and rest stops, plus FMCSA daily log sheets."
       />
 
       {!online ? (
@@ -119,8 +117,9 @@ export default function NewTrip() {
       ) : null}
 
       <form onSubmit={submit} className={styles.form} noValidate>
-        <Card>
-          <h2 className={styles.section}>Locations</h2>
+        <Card className={styles.formCard}>
+          <Step number={1} title="Where are you going?" />
+
           <div className={styles.fields}>
             <TextField
               label="Current location"
@@ -158,68 +157,72 @@ export default function NewTrip() {
               <option key={h} value={h} />
             ))}
           </datalist>
-        </Card>
 
-        <Card>
-          <h2 className={styles.section}>How much have you driven this week?</h2>
-          <p className={styles.helper}>
-            Hours already on duty in the last 8 days. The 70-hour cycle starts
-            from here.
-          </p>
+          <hr className={styles.divider} />
 
-          <Slider
-            value={form.current_cycle_hours}
-            onChange={(v) => set("current_cycle_hours", v)}
-            min={0}
-            max={MAX_CYCLE}
-            step={0.25}
-            ticks={TICKS}
-            unit="hr"
-            ariaLabel="Current cycle hours used"
-            disabled={loading}
-          />
+          <Step number={2} title="How much have you driven this week?" />
+
+          <div className={styles.sliderBox}>
+            <Slider
+              value={form.current_cycle_hours}
+              onChange={(v) => set("current_cycle_hours", v)}
+              min={0}
+              max={MAX_CYCLE}
+              step={0.25}
+              ticks={TICKS}
+              unit="hr"
+              ariaLabel="Current cycle hours used"
+              disabled={loading}
+            />
+          </div>
 
           <p className={styles.helperBig}>
             You have{" "}
-            <strong className="mono tabular">{cycleLeft.toFixed(2)}</strong>{" "}
-            hours of cycle time left before a 34-hour restart.
+            <strong className="mono tabular">{formatHM(cycleLeftMinutes)}</strong>{" "}
+            of cycle time left before a 34-hr restart.
           </p>
 
           {cycleInvalid ? (
             <div className={styles.blocker} role="alert">
               <Badge tone="danger" dot>Invalid hours</Badge>
-              <span>
-                Enter cycle hours between 0 and 70 before planning.
-              </span>
+              <span>Enter cycle hours between 0 and 70 before planning.</span>
             </div>
           ) : cycleBlocked ? (
             <div className={styles.blocker} role="alert">
               <Badge tone="danger" dot>Cycle exhausted</Badge>
-              <span>
-                Take a 34-hour restart before planning a new trip.
-              </span>
+              <span>Take a 34-hour restart before planning a new trip.</span>
             </div>
           ) : null}
+
+          <ErrorBanner error={error} />
+
+          <div className={styles.submitRow}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="xl"
+              fullWidth
+              disabled={!canSubmit}
+              trailingIcon={<ArrowRightIcon />}
+            >
+              {loading ? "Computing route…" : "Plan trip"}
+            </Button>
+            <p className={styles.note}>
+              Routes via OpenRouteService. Logs follow FMCSA 49 CFR §395.
+            </p>
+          </div>
         </Card>
-
-        <ErrorBanner error={error} />
-
-        <div className={styles.submitRow}>
-          <Button
-            type="submit"
-            variant="primary"
-            size="xl"
-            fullWidth
-            disabled={!canSubmit}
-          >
-            {loading ? "Computing route…" : "Plan trip"}
-          </Button>
-          <p className={styles.note}>
-            Routes via OpenRouteService. Logs follow FMCSA 49 CFR §395.
-          </p>
-        </div>
       </form>
     </>
+  );
+}
+
+function Step({ number, title }) {
+  return (
+    <div className={styles.step}>
+      <span className={styles.stepNumber} aria-hidden>{number}</span>
+      <h2 className={styles.stepTitle}>{title}</h2>
+    </div>
   );
 }
 
@@ -237,6 +240,12 @@ function parseCycleHours(value) {
     return { ok: false, value: null };
   }
   return { ok: true, value: hours };
+}
+
+function formatHM(totalMinutes) {
+  const m = Math.max(0, Math.round(totalMinutes));
+  const h = Math.floor(m / 60);
+  return `${String(h).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 }
 
 function PinIcon() {
@@ -270,16 +279,25 @@ function BoxIcon() {
 function FlagIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M4 2v12"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
+      <path d="M4 2v12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
       <path
         d="M4 3h7l-1.5 2.5L11 8H4"
         stroke="currentColor"
         strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ArrowRightIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path
+        d="M3 8h10M9 4l4 4-4 4"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>

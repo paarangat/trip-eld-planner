@@ -5,11 +5,47 @@
   margin: 0 auto;
 }
 
-.section {
-  font-size: 16px;
+.formCard {
+  padding: var(--space-6);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.stepNumber {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
   font-weight: 600;
-  margin: 0 0 var(--space-3);
+  display: grid;
+  place-items: center;
+}
+
+.stepTitle {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
   color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.divider {
+  border: none;
+  height: 1px;
+  background: var(--border);
+  margin: var(--space-3) 0;
 }
 
 .fields {
@@ -17,16 +53,14 @@
   gap: var(--space-3);
 }
 
-.helper {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin: 0 0 var(--space-3);
+.sliderBox {
+  padding: var(--space-3) 0 0;
 }
 
 .helperBig {
   font-size: 14px;
   color: var(--text);
-  margin: var(--space-2) 0 0;
+  margin: 0;
 }
 
 .helperBig strong {
@@ -41,7 +75,6 @@
   background: var(--danger-soft);
   color: var(--danger);
   border-radius: var(--radius-sm);
-  margin-top: var(--space-3);
   font-size: 13px;
 }
 
@@ -53,13 +86,15 @@
   background: var(--warn-soft);
   color: var(--warn);
   border-radius: var(--radius-sm);
-  margin-bottom: var(--space-4);
+  margin: 0 auto var(--space-4);
   font-size: 13px;
+  max-width: 720px;
 }
 
 .submitRow {
   display: grid;
   gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .note {
@@ -67,4 +102,10 @@
   font-size: 12px;
   color: var(--text-muted);
   margin: 0;
+}
+
+@media (max-width: 640px) {
+  .formCard {
+    padding: var(--space-4);
+  }
 }
